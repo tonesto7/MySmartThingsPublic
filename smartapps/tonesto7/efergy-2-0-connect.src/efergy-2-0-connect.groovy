@@ -138,26 +138,18 @@ def updated() {
 def uninstalled() {
 	unsubscribe()
 	unschedule()
-	try {
-    	removeChildDevices(getChildDevices())
-    }
-    catch (e) {
-        logWriter("Error Deleting Child Device: " + e)
-    }
-}	
-
+	removeChildDevices(getChildDevices())
+}
+    
 def initialize() {    
-	
-    refresh()
+	refresh()
 	addDevice()	
    	addSchedule()
     evtSubscribe()
-    // Run refresh after installation
-	//runRefresh()
 }
 
+//subscribes to the various location events and uses them to refresh the data if the scheduler gets stuck
 private evtSubscribe() {
-	//Subscribes to sunrise and sunset event to trigger refreshes
 	subscribe(location, "sunrise", refresh)
 	subscribe(location, "sunset", refresh)
 	subscribe(location, "mode", refresh)
@@ -165,6 +157,7 @@ private evtSubscribe() {
 	subscribe(location, "sunsetTime", refresh)
 }
 
+//Creates the child device if it not already there
 private addDevice() {
 	def dni = "Efergy Engage|" + state.hubMacAddr
     state.dni = dni
@@ -180,11 +173,15 @@ private addDevice() {
 }
 
 private removeChildDevices(delete) {
-    delete.each {
-        deleteChildDevice(it.deviceNetworkId)
-    }
+	try {
+    	delete.each {
+        	deleteChildDevice(it.deviceNetworkId)
+    		}
+   		}
+    catch (e) { logWriter("There was an error (${e}) when trying to delete the child device") }
 }
 
+//Sends updated reading data to the Child Device
 def updateDeviceData() {
 	getAllChildDevices().each { 
     	it.updateReadingData(state.powerReading.toString(), state.readingUpdated)
@@ -205,6 +202,7 @@ def refresh() {
     updateDeviceData()
 }
 
+//Create Refresh schedule to refresh device data (Triggers roughly every 30 seconds)
 private addSchedule() {
 	def sched = "1/1 * * * * ?"
     schedule(sched, "refresh")
@@ -420,8 +418,7 @@ def getReadingData() {
 	httpGet(summaryParams, summaryClosure)
 }
 
-
-// Get Status 
+// Returns Hub Device Status Info 
 def getHubData() {
 	def hubId = ""
     def hubMacAddr = ""
@@ -435,13 +432,20 @@ def getHubData() {
             //Converts http response data to list
 			statusList = new JsonSlurper().parseText(respData)
 			
+           hubId = statusList.hid
+            hubMacAddr = statusList.listOfMacs.mac
+    		hubStatus = statusList.listOfMacs.status
+    		hubTsHuman = statusList.listOfMacs.tsHuman
+    		hubType = statusList.listOfMacs.type
+    		hubVersion = statusList.listOfMacs.version
+            
             //Save info to device state store
-            state.hubId = statusList.hid
-            state.hubMacAddr = statusList.listOfMacs.mac.toString().replaceAll("\\[|\\{|\\]|\\}", "")
-            state.hubStatus = statusList.listOfMacs.status.toString().replaceAll("\\[|\\{|\\]|\\}", "")
-            state.hubTsHuman = statusList.listOfMacs.tsHuman.toString().replaceAll("\\[|\\{|\\]|\\}", "")
-            state.hubType = statusList.listOfMacs.type.toString().replaceAll("\\[|\\{|\\]|\\}", "")
-            state.hubVersion = statusList.listOfMacs.version.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubId = hubId
+            state.hubMacAddr = hubMacAddr.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubStatus = hubStatus.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubTsHuman = hubTsHuman.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubType = hubType.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubVersion = hubVersion.toString().replaceAll("\\[|\\{|\\]|\\}", "")
             state.hubName = getHubName(hubType)
 			
             //Show Debug logging if enabled in preferences            
@@ -470,6 +474,7 @@ private def logWriter(value) {
         log.debug "${value}"
     }	
 }
+
 /******************************************************************************  
 *				Application Help and License Info Variables					  *
 *******************************************************************************/
