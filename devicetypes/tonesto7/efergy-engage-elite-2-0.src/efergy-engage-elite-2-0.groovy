@@ -14,7 +14,7 @@
 *
 *  ---------------------------
 *	v2.0 (Sept 15th, 2015)
-*	- Device is now installed and updated via the Efergy (connect)
+*	- Device is now installed and updated via the Efergy 2.0 (Connect) SmartApp
 *
 *  v1.1 (Sept 11th, 2015)
 *	- Trying to update the tile view to reflect the new multiAttributeTile features
@@ -51,7 +51,7 @@ metadata {
 	tiles (scale: 2) {
         multiAttributeTile(name:"power", type:"generic", width:6, height:4) {
     		tileAttribute("device.power", key: "PRIMARY_CONTROL") {
-      			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/bdj3636ohmxkgr5/power_icon.png", wordWrap: true, 
+      			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/bdj3636ohmxkgr5/power_icon.png", 
                 foregroundColor: "#000000",
                 backgroundColors:[
 					[value: 1, color: "#00cc00"], //Light Green
