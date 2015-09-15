@@ -96,11 +96,11 @@ def prefPage() {
             
             paragraph "This will help if you are having issues with data not updating...\n** This will generate a TON of Log Entries so only enable if needed **"
         	input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true
-        	if(showLogging == true){ 
+        	if(showLogging == true && !state.showLogging) { 
             	state.showLogging = true
             	log.debug "Debug Logging Enabled!!!"    
             }
-        	if(showLogging == false){ 
+        	if(showLogging == false && state.showLogging){ 
             	state.showLogging = false 
             	log.debug "Debug Logging Disabled!!!"                
             }
