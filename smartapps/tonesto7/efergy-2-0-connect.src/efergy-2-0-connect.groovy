@@ -58,7 +58,6 @@ def startPage() {
 }
 
 def loginPage() {
-	
     def showUninstall = username != null && password != null 
    	return dynamicPage(name: "loginPage", title: "Efergy Login", nextPage:"prefPage", uninstall: showUninstall, install: false) {
     	
@@ -72,8 +71,7 @@ def loginPage() {
 
 /* Preferences */
 def prefPage() {
-	//def showUninstall = token != null 
-    if(state.showLogging == null) { state.showLogging = false }
+	if(state.showLogging == null) { state.showLogging = false }
     if(state.efergyAuthToken == null) { getAuthToken() }
     
 	dynamicPage(name: "prefPage", title: "Preferences", uninstall: true, install: true) {
@@ -113,6 +111,7 @@ def prefPage() {
 }
 
 def hubInfoPage () {
+	if (state.hubName == null) { refresh() }
 	dynamicPage(name: "hubInfoPage", install: false) {
  		section ("Hub Information") {
     		paragraph "Hub Name: " + state.hubName
@@ -141,18 +140,33 @@ def uninstalled() {
 	unschedule()
 	try {
     	removeChildDevices(getChildDevices())
-        }
-        catch (e)
-        {
-        	logWriter("Error Deleting Child Device: " + e)
-        }
+    }
+    catch (e) {
+        logWriter("Error Deleting Child Device: " + e)
+    }
 }	
 
 def initialize() {    
 	
     refresh()
-		
-   	def dni = "Efergy Engage|" + state.hubMacAddr
+	addDevice()	
+   	addSchedule()
+    evtSubscribe()
+    // Run refresh after installation
+	//runRefresh()
+}
+
+private evtSubscribe() {
+	//Subscribes to sunrise and sunset event to trigger refreshes
+	subscribe(location, "sunrise", refresh)
+	subscribe(location, "sunset", refresh)
+	subscribe(location, "mode", refresh)
+	subscribe(location, "sunriseTime", refresh)
+	subscribe(location, "sunsetTime", refresh)
+}
+
+private addDevice() {
+	def dni = "Efergy Engage|" + state.hubMacAddr
     state.dni = dni
   	def d = getChildDevice(dni)
   	if(!d) {
@@ -163,21 +177,6 @@ def initialize() {
     else {
     logWriter("Device already created")
   	}
-    def sched = "1/1 * * * * ?"
-    schedule(sched, "refresh")
-    
-    //subscribe(app, onAppTouch)
-    //schedule("32 3 0/4 1/1 * ?", "updated")
-    
-    //Subscribes to sunrise and sunset event to trigger refreshes
-	subscribe(location, "sunrise", refresh)
-	subscribe(location, "sunset", refresh)
-	subscribe(location, "mode", refresh)
-	subscribe(location, "sunriseTime", refresh)
-	subscribe(location, "sunsetTime", refresh)
-    
-	// Run refresh after installation
-	//runRefresh()
 }
 
 private removeChildDevices(delete) {
@@ -186,8 +185,12 @@ private removeChildDevices(delete) {
     }
 }
 
-def updateData() {
-	refresh()
+def updateDeviceData() {
+	getAllChildDevices().each { 
+    	it.updateReadingData(state.powerReading.toString(), state.readingUpdated)
+		it.updateUsageData(state.todayUsage, state.monthUsage, state.monthEst)
+		it.updateHubData(state.hubVersion, state.hubStatus)
+	}
 }
 
 // refresh command
@@ -197,51 +200,16 @@ def refresh() {
     getReadingData()
  	getUsageData()
     getHubData()
+    if (recipients) { checkForNotify() }
     
-    getAllChildDevices().each { 
-    	it.updateReadingData(state.powerReading.toString(), state.readingUpdated)
-		it.updateUsageData(state.todayUsage, state.monthUsage, state.monthEst)
-		it.updateHubData(state.hubVersion, state.hubStatus)
-	}
+    updateDeviceData()
 }
 
-//Converts Today's DateTime into Day of Week and Month Name ("September")
-def getDayMonth() {
-	def sdf = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy");
-    def now = new Date()
-    def month
-    def day
-    def lastNotify
-    month = new SimpleDateFormat("MMMM").format(now)
-    day = new SimpleDateFormat("EEEE").format(now)
-   
-    if (month != null && day != null) {
-    	state.monthName = month
-        state.dayOfWeek = day
-    } 
-    /*
-    if(state.notifyDelayMin == null) { state.notifyDelayMin = 50 }
-    if(state.notifyAfterMin == null) { state.notifyAfterMin = 60 }
-    logWriter(state.notifyDelayMin)
-    logWriter(state.notifyAfterMin)
-    def delayVal = state.notifyDelayMin * 60
-    def notifyVal = state.notifyAfterMin * 60
-    
-    def timeSince = GetTimeDiffSeconds(state.hubTsHuman)
-    
-    
-    if (timeSince > delayVal) {
-    	if (state.lastNotified == null) { 
-        	lastNotify = 0
-        }
-        else if (lastNotify < notifyVal){
-        	logWriter("Notification was sent ${lastNotify} seconds ago.  Waiting till after ${updateVal} seconds before sending Notification again!")
-            return
-        }
-        lastNotify = 0
-        NotifyOnNoUpdate(timeSince)
-    }
-    */
+private addSchedule() {
+	def sched = "1/1 * * * * ?"
+    schedule(sched, "refresh")
+    //subscribe(app, onAppTouch)
+    //schedule("32 3 0/4 1/1 * ?", "updated")
 }
 
 // Get Efergy Authentication Token
@@ -260,8 +228,50 @@ def getAuthToken() {
         contentType: 'application/json'
     	]
 	httpGet(params, closure)
+    refresh()
 }
 
+//Converts Today's DateTime into Day of Week and Month Name ("September")
+def getDayMonth() {
+	def sdf = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy");
+    def now = new Date()
+    def month
+    def day
+    def lastNotify
+    month = new SimpleDateFormat("MMMM").format(now)
+    day = new SimpleDateFormat("EEEE").format(now)
+   
+    if (month != null && day != null) {
+    	state.monthName = month
+        state.dayOfWeek = day
+    } 
+}
+
+//Checks for Time passed since last update and sends notification if enabled
+def checkForNotify() {
+    if(state.notifyDelayMin == null) { state.notifyDelayMin = 50 }
+    if(state.notifyAfterMin == null) { state.notifyAfterMin = 60 }
+    logWriter("Delay X Min: " + state.notifyDelayMin)
+    logWriter("After X Min: " + state.notifyAfterMin)
+    def delayVal = state.notifyDelayMin * 60
+    def notifyVal = state.notifyAfterMin * 60
+    
+    def timeSince = GetTimeDiffSeconds(state.hubTsHuman)
+    
+    if (timeSince > delayVal) {
+    	if (state.lastNotified == null) { 
+        	lastNotify = 0
+        }
+        else if (lastNotify < notifyVal){
+        	logWriter("Notification was sent ${lastNotify} seconds ago.  Waiting till after ${updateVal} seconds before sending Notification again!")
+            return
+        }
+        lastNotify = 0
+        NotifyOnNoUpdate(timeSince)
+    }
+}
+
+//Sends the actual Push Notification
 def NotifyOnNoUpdate(Integer timeSince) {
 	state.lastNotified = new Date()
     logWriter("Time Since Update: ${timeSince} seconds")
@@ -278,6 +288,7 @@ def NotifyOnNoUpdate(Integer timeSince) {
     }
 }
 
+//Returns time difference is seconds 
 def GetTimeDiffSeconds(String startDate) {
 	def now = new Date()
     def startDt = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy").parse(startDate)
@@ -300,8 +311,6 @@ def getHubName(String hubType) {
 	}
     state.hubName = hubName
 }
-
-
 
 // Get extended energy metrics
 def getUsageData() {
@@ -331,7 +340,6 @@ def getUsageData() {
     	]
 	httpGet(params, estUseClosure)
 }
- 
  
 /* Get the sensor reading
 ****  Json Returned: {"cid":"PWER","data":[{"1440023704000":0}],"sid":"123456","units":"kWm","age":142156},{"cid":"PWER_GAC","data":[{"1440165858000":1343}],"sid":"123456","units":null,"age":2}
@@ -427,20 +435,13 @@ def getHubData() {
             //Converts http response data to list
 			statusList = new JsonSlurper().parseText(respData)
 			
-            hubId = statusList.hid
-            hubMacAddr = statusList.listOfMacs.mac
-    		hubStatus = statusList.listOfMacs.status
-    		hubTsHuman = statusList.listOfMacs.tsHuman
-    		hubType = statusList.listOfMacs.type
-    		hubVersion = statusList.listOfMacs.version
-            
             //Save info to device state store
-            state.hubId = hubId
-            state.hubMacAddr = hubMacAddr.toString().replaceAll("\\[|\\{|\\]|\\}", "")
-            state.hubStatus = hubStatus.toString().replaceAll("\\[|\\{|\\]|\\}", "")
-            state.hubTsHuman = hubTsHuman.toString().replaceAll("\\[|\\{|\\]|\\}", "")
-            state.hubType = hubType.toString().replaceAll("\\[|\\{|\\]|\\}", "")
-            state.hubVersion = hubVersion.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubId = statusList.hid
+            state.hubMacAddr = statusList.listOfMacs.mac.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubStatus = statusList.listOfMacs.status.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubTsHuman = statusList.listOfMacs.tsHuman.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubType = statusList.listOfMacs.type.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+            state.hubVersion = statusList.listOfMacs.version.toString().replaceAll("\\[|\\{|\\]|\\}", "")
             state.hubName = getHubName(hubType)
 			
             //Show Debug logging if enabled in preferences            
