@@ -12,7 +12,15 @@
  *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
  *  for the specific language governing permissions and limitations under the License.
  *
- */
+ *  ---------------------------
+*	v2.1 (Sept 18th, 2015)
+*	- Enabling Debug logging in SmartApp also enables it in the Device type.
+*
+*	v2.0 (Sept 15th, 2015)
+*	- Device is now installed and updated via the Efergy 2.0 (Connect) SmartApp
+*
+*   ---------------------------
+*/
  
 import groovy.json.JsonSlurper
 import java.text.SimpleDateFormat 
@@ -25,9 +33,9 @@ definition(
     author: "${textAuthor()}",
     description: "${textDesc()}",
 	category: "My Apps",
-	iconUrl:   "https://dl.dropboxusercontent.com/s/auhmf1es7q7jsww/efergy.png",
-	iconX2Url: "https://dl.dropboxusercontent.com/s/auhmf1es7q7jsww/efergy.png",
-	iconX3Url: "https://dl.dropboxusercontent.com/s/auhmf1es7q7jsww/efergy.png"
+	iconUrl:   "https://dl.dropboxusercontent.com/s/ygekf7djoe2aebn/efergy_128.png",
+	iconX2Url: "https://dl.dropboxusercontent.com/s/sdkupgjznvqhdic/efergy_256.png",
+	iconX3Url: "https://dl.dropboxusercontent.com/s/f2ysb7j38ql5734/efergy_512.png"
 )
 
 //Change This to rename the Defaul App Name
@@ -37,9 +45,9 @@ def appAuthor() { "Anthony S." }
 //So is this...
 def appNamespace() { "tonesto7" }
 //This one too...
-def appVersion() { "2.0.0" }
+def appVersion() { "2.1.0" }
 //Definitely this one too!
-def versionDate() { "9-15-2015" }
+def versionDate() { "9-20-2015" }
 //Application Description
 def appDesc() { "This app will connect to the Efergy Servers and create the device automatically for you.  It will also update the device info every 30ish seconds" }
 
@@ -70,6 +78,8 @@ def loginPage() {
 /* Preferences */
 def prefPage() {
 	if(state.showLogging == null) { state.showLogging = false }
+    if(state.darkIcon == null) { state.darkIcon = false 
+        logWriter("Dark Icon was null but was changed to False") }
     if(state.efergyAuthToken == null) { getAuthToken() }
     
 	dynamicPage(name: "prefPage", title: "Preferences", uninstall: true, install: true) {
@@ -98,11 +108,13 @@ def prefPage() {
         	input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true
         	if(showLogging == true && !state.showLogging) { 
             	state.showLogging = true
-            	log.debug "Debug Logging Enabled!!!"    
+            	log.debug "Debug Logging Enabled!!!"
+                refresh()
             }
         	if(showLogging == false && state.showLogging){ 
             	state.showLogging = false 
-            	log.debug "Debug Logging Disabled!!!"                
+            	log.debug "Debug Logging Disabled!!!"
+                refresh()
             }
 		}
    	}
@@ -181,7 +193,10 @@ private removeChildDevices(delete) {
 
 //Sends updated reading data to the Child Device
 def updateDeviceData() {
+	logWriter(" ")
+    logWriter("--------------Sending Data to Device--------------")
 	getAllChildDevices().each { 
+    	it.isDebugLogging(state.showLogging.toString())
     	it.updateReadingData(state.powerReading.toString(), state.readingUpdated)
 		it.updateUsageData(state.todayUsage, state.monthUsage, state.monthEst)
 		it.updateHubData(state.hubVersion, state.hubStatus)
@@ -190,6 +205,9 @@ def updateDeviceData() {
 
 // refresh command
 def refresh() {
+	log.debug ""	
+	log.debug ""
+	log.debug "*****************************LOG EVENT START******************************"
 	log.debug "Refreshing data"
     getDayMonth()
     getReadingData()
@@ -322,7 +340,9 @@ def getUsageData() {
             state.monthEst = "${state.monthName}\'s Cost (Est.) \$${estUseResp.data.month_tariff.estimate}"
             
             //Show Debug logging if enabled in preferences
-            logWriter("Usage Data Http Response: $estUseResp.data")
+            logWriter(" ")
+            logWriter("-------------------ESTIMATED USAGE DATA-------------------")
+            //logWriter("Http Usage Response: $estUseResp.data")
             logWriter("TodayUsage: Today\'s Usage: \$${estUseResp.data.day_tariff.estimate} (${estUseResp.data.day_kwh.estimate} kWh)")
             logWriter("MonthUsage: ${state.monthName} Usage \$${estUseResp.data.month_tariff.previousSum} (${estUseResp.data.month_kwh.previousSum} kWh)")
             logWriter("MonthEst: ${state.monthName}\'s Cost (Est.) \$${estUseResp.data.month_tariff.estimate}")
@@ -360,14 +380,18 @@ def getReadingData() {
 			
             //Search through the list for age to determine Cid Type
 			for (rec in cidList) { 
-    		if ((((rec.age >= 0) && (rec.age <= 10)) || (rec.age == 0) ) ) { 
-                cidVal = rec.cid 
-        		cidData = rec.data
-                cidReadingAge = rec.age
-                if(rec.units != null)
-                    cidUnit = rec.units
-        		break 
-     		}
+    			if ((((rec.age >= 0) && (rec.age <= 10)) || (rec.age == 0) ) ) { 
+                	cidVal = rec.cid 
+        			cidData = rec.data
+                	cidReadingAge = rec.age
+                	if(rec.units != null)
+                    	cidUnit = rec.units
+        			break 
+     			}
+            	if (rec.age >= 11 && rec.age <= 300) { 
+                	logWriter("Warning!!! There appears to be some sort of delay.  The last reading was received ${rec.age} seconds ago...")
+                    refresh()  /* If time exceeds 10 seconds try to initiate a refresh.  */
+                }
 		}
             
  		//Convert data: values to individual strings
@@ -396,7 +420,9 @@ def getReadingData() {
         state.readingUpdated = "Last Updated: ${readingUpdated}"
             
 		//Show Debug logging if enabled in preferences
-        logWriter("Summary Response: " + respData)
+        logWriter(" ")	
+        logWriter("-------------------USAGE READING DATA-------------------")
+        //logWriter("HTTP Status Response: " + respData)	/*<------Uncomment this line to log the Http response */
 		logWriter("Cid Type: " + state.cidType)
         logWriter("Cid Unit: " + cidUnit)
         logWriter("Timestamp: " + timeVal)
@@ -424,7 +450,7 @@ def getHubData() {
     def hubTsHuman
     def hubType = ""
     def hubVersion = ""
-     def statusList
+    def statusList
     def getStatusClosure = { statusResp ->  
         	def respData = statusResp.data.text
             //Converts http response data to list
@@ -446,8 +472,10 @@ def getHubData() {
             state.hubVersion = hubVersion.toString().replaceAll("\\[|\\{|\\]|\\}", "")
             state.hubName = getHubName(hubType)
 			
-            //Show Debug logging if enabled in preferences            
-            logWriter("Status Response: " + respData)
+            //Show Debug logging if enabled in preferences
+            logWriter(" ")	
+            logWriter("-------------------HUB DEVICE DATA-------------------")
+            //logWriter("HTTP Status Response: " + respData)
             logWriter("Hub ID: " + state.hubId)
             logWriter("Hub Mac: " + state.hubMacAddr)
             logWriter("Hub Status: " + state.hubStatus)
