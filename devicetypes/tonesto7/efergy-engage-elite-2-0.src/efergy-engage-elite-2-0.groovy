@@ -13,6 +13,9 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
+*	v2.1 (Sept 18th, 2015)
+*	- Added the ability to change the icon via toggle in smartapp preferences
+*
 *	v2.0 (Sept 15th, 2015)
 *	- Device is now installed and updated via the Efergy 2.0 (Connect) SmartApp
 *
@@ -32,8 +35,8 @@ import java.text.SimpleDateFormat
 import groovy.time.TimeCategory 
 import groovy.time.TimeDuration
 
-def devTypeVer() {"2.0"}
-def versionDate() {"9-15-2015"}
+def devTypeVer() {"2.1"}
+def versionDate() {"9-18-2015"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
@@ -41,17 +44,19 @@ metadata {
         capability "Power Meter"
         capability "Polling"
         capability "Refresh"
+        attribute "iconUrl", "string"
         command "poll"
         command "refresh"
         command "updateUsageData", ["string", "string", "string"]
 		command "updateReadingData", ["string", "string"]
         command "updateHubData", ["string", "string"]
+        command "isDebugLogging", ["string"]
 	}
     
 	tiles (scale: 2) {
-        multiAttributeTile(name:"power", type:"generic", width:6, height:4) {
+    	multiAttributeTile(name:"power", type:"generic", width:6, height:4) {
     		tileAttribute("device.power", key: "PRIMARY_CONTROL") {
-      			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/bdj3636ohmxkgr5/power_icon.png", 
+      			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/a6qf77smydsiir7/power_icon_bk.png", 
                 foregroundColor: "#000000",
                 backgroundColors:[
 					[value: 1, color: "#00cc00"], //Light Green
@@ -96,16 +101,7 @@ metadata {
 
 preferences {
 	section() {
-        paragraph "Enable this if you are having issues with tiles not updating...\n** This will create alot of Log Entries so its recommended that you disable when it's not needed **"
-        input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false
-        if(showLogging == true){ 
-        	state.showLogging = true
-            log.debug "Debug Logging Enabled!!!"    
-        }
-        if(showLogging == false){ 
-        	state.showLogging = false 
-            log.debug "Debug Logging Disabled!!!"                
-        }
+        
     }
 }
 
@@ -128,32 +124,43 @@ def poll() {
 
 // Get extended energy metrics
 def updateUsageData(String todayUsage, String monthUsage, String monthEst) {
+    logWriter("--------------UPDATE USAGE DATA-------------")
 	logWriter("todayUsage: " + todayUsage)
     logWriter("monthUsage: " + monthUsage)
     logWriter("monthEst: " + monthEst)
-	sendEvent(name: "todayUsage", value: todayUsage)
-    sendEvent(name: "monthUsage", value: monthUsage)
-    sendEvent(name: "monthEst", value: monthEst)
+    logWriter("")
+	sendEvent(name: "todayUsage", value: todayUsage, display: false, displayed: false)
+    sendEvent(name: "monthUsage", value: monthUsage, display: false, displayed: false)
+    sendEvent(name: "monthEst", value: monthEst, display: false, displayed: false)
 }
  
 def updateReadingData(String power, String readingUpdated) {
-	logWriter("energy: " + power.toInteger() / 1000)
+    logWriter("--------------UPDATE READING DATA-------------")
+    logWriter("energy: " + power.toInteger() / 1000)
     logWriter("power: " + power)
     logWriter("readingUpdated: " + readingUpdated)
-	//Updates Device Readings to tiles
-    sendEvent(name: "energy", unit: "kWh", value: power.toInteger() / 1000)
+    logWriter("")    
+    //Updates Device Readings to tiles
+    sendEvent(name: "energy", unit: "kWh", value: power.toInteger() / 1000, display: false, displayed: false)
     sendEvent(name: "power", unit: "W", value: power)
-    sendEvent(name: "readingUpdated", value: readingUpdated)
+    sendEvent(name: "readingUpdated", value: readingUpdated, display: false, displayed: false)
 }
 
 // Get Status 
 def updateHubData(String hubVersion, String hubStatus) {
-	logWriter("hubVersion: " + hubVersion)
+    logWriter("--------------UPDATE HUB DATA-------------")
+    logWriter("hubVersion: " + hubVersion)
     logWriter("hubStatus: " + hubStatus)
+    logWriter("")
 	//Updates HubVersion and HubStatus Tiles 
-	sendEvent(name: "hubVersion", value: hubVersion)
-    sendEvent(name: "hubStatus", value: hubStatus)
+	sendEvent(name: "hubVersion", value: hubVersion, display: false, displayed: false)
+    sendEvent(name: "hubStatus", value: hubStatus, display: false, displayed: false)
 }    
+
+def isDebugLogging(String showLogging) {
+	state.showLogging = showLogging.toBoolean()
+    logWriter("DebugLogging: ${state.showLogging}") 
+}
 
 //Log Writer that all logs are channel through *It will only output these if Debug Logging is enabled under preferences
 private def logWriter(value) {
