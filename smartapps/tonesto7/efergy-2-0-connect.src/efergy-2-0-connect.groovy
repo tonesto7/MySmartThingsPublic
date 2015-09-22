@@ -83,9 +83,12 @@ def prefPage() {
     if(state.efergyAuthToken == null) { getAuthToken() }
     
 	dynamicPage(name: "prefPage", title: "Preferences", uninstall: true, install: true) {
-        section() {
-        	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7\n\n${textDesc()}"
+        section("App Details:") {
+        	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7", image: "https://dl.dropboxusercontent.com/s/ygekf7djoe2aebn/efergy_128.png"
     	}
+        section("App Description:"){
+        	paragraph "${textDesc()}"
+        }	
 
 		section() { 
         	href "hubInfoPage", title:"View Hub Info", description: "Tap to view more..." 
@@ -201,14 +204,13 @@ def updateDeviceData() {
 		it.updateUsageData(state.todayUsage, state.monthUsage, state.monthEst)
 		it.updateHubData(state.hubVersion, state.hubStatus)
 	}
+    
 }
 
 // refresh command
 def refresh() {
-	log.debug ""	
-	log.debug ""
-	log.debug "*****************************LOG EVENT START******************************"
-	log.debug "Refreshing data"
+	logWriter("")	
+	log.debug "Refreshing Efergy Data"
     getDayMonth()
     getReadingData()
  	getUsageData()
@@ -216,6 +218,7 @@ def refresh() {
     if (recipients) { checkForNotify() }
     
     updateDeviceData()
+    log.debug ""
 }
 
 //Create Refresh schedule to refresh device data (Triggers roughly every 30 seconds)
