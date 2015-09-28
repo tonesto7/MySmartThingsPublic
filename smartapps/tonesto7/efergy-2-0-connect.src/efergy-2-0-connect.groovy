@@ -13,14 +13,20 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  ---------------------------
-*	v2.1 (Sept 18th, 2015)
-*	- Enabling Debug logging in SmartApp also enables it in the Device type.
-*
-*	v2.0 (Sept 15th, 2015)
-*	- Device is now installed and updated via the Efergy 2.0 (Connect) SmartApp
-*
-*   ---------------------------
-*/
+ *  v2.2 (Sept 28th, 2015)
+ *	- Reworked Scheduling Mechanism. The application now checks for updates to the timestamp every 5 minutes
+ *	- If there hasn't been an update it reschedules all of the Jobs
+ *	- Notifications now work correctly (I think)
+ *  - Please don't judge the devices updates by the activity log in the mobile app.  It is not very accurate.
+ *
+ *	v2.1 (Sept 18th, 2015)
+ *	- Enabling Debug logging in SmartApp also enables it in the Device type.
+ *
+ *	v2.0 (Sept 15th, 2015)
+ *	- Device is now installed and updated via the Efergy 2.0 (Connect) SmartApp
+ *
+ *   ---------------------------
+ */
  
 import groovy.json.JsonSlurper
 import java.text.SimpleDateFormat 
@@ -45,9 +51,9 @@ def appAuthor() { "Anthony S." }
 //So is this...
 def appNamespace() { "tonesto7" }
 //This one too...
-def appVersion() { "2.1.0" }
+def appVersion() { "2.2.0" }
 //Definitely this one too!
-def versionDate() { "9-20-2015" }
+def versionDate() { "9-28-2015" }
 //Application Description
 def appDesc() { "This app will connect to the Efergy Servers and create the device automatically for you.  It will also update the device info every 30ish seconds" }
 
@@ -109,12 +115,12 @@ def prefPage() {
             
             paragraph "This will help if you are having issues with data not updating...\n** This will generate a TON of Log Entries so only enable if needed **"
         	input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true
-        	if(showLogging == true && !state.showLogging) { 
+        	if(showLogging && !state.showLogging) { 
             	state.showLogging = true
             	log.debug "Debug Logging Enabled!!!"
                 refresh()
             }
-        	if(showLogging == false && state.showLogging){ 
+        	if(!showLogging && state.showLogging){ 
             	state.showLogging = false 
             	log.debug "Debug Logging Disabled!!!"
                 refresh()
@@ -204,29 +210,39 @@ def updateDeviceData() {
 		it.updateUsageData(state.todayUsage, state.monthUsage, state.monthEst)
 		it.updateHubData(state.hubVersion, state.hubStatus)
 	}
-    
 }
 
 // refresh command
 def refresh() {
-	logWriter("")	
-	log.debug "Refreshing Efergy Data"
+	checkSchedule()
+    logWriter("")	
+	log.debug "Refreshing Efergy Data" 
     getDayMonth()
     getReadingData()
  	getUsageData()
     getHubData()
     if (recipients) { checkForNotify() }
-    
+   
     updateDeviceData()
     log.debug ""
 }
 
 //Create Refresh schedule to refresh device data (Triggers roughly every 30 seconds)
 private addSchedule() {
-	def sched = "1/1 * * * * ?"
-    schedule(sched, "refresh")
-    //subscribe(app, onAppTouch)
-    //schedule("32 3 0/4 1/1 * ?", "updated")
+    schedule("0 0/5 * 1/1 * ? *", "checkSchedule")
+    schedule("1/1 * * * * ?", "refresh")
+}
+
+private checkSchedule() {
+	def timeSince
+   	if (state.hubTsHuman !=null) {
+    	timeSince = GetTimeDiffSeconds(state.hubTsHuman)
+    }
+    if (timeSince == null || timeSince > 360) {
+    	log.warn "It has been more that 5 minutes since last refresh"
+        log.debug "Scheduling Issue found Re-Initializing Schedule... Data should resume refreshing in 30 seconds" 
+        addSchedule()
+    }
 }
 
 // Get Efergy Authentication Token
@@ -250,11 +266,10 @@ def getAuthToken() {
 
 //Converts Today's DateTime into Day of Week and Month Name ("September")
 def getDayMonth() {
-	def sdf = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy");
+	def sdf = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy")
     def now = new Date()
     def month
     def day
-    def lastNotify
     month = new SimpleDateFormat("MMMM").format(now)
     day = new SimpleDateFormat("EEEE").format(now)
    
@@ -273,28 +288,42 @@ def checkForNotify() {
     def delayVal = state.notifyDelayMin * 60
     def notifyVal = state.notifyAfterMin * 60
     
+    def lastNotifySeconds = GetTimeDiffSeconds(state.lastNotified)
     def timeSince = GetTimeDiffSeconds(state.hubTsHuman)
     
+    if (lastNotifySeconds != null && state.lastNotified != null) {
+    	state.lastNotifySeconds = lastNotifySeconds
+        logWriter("Last Notified: ${state.lastNotified} - (${state.lastNotifySeconds} seconds ago)")
+    }
+
+	else if (lastNotifySeconds == null || state.lastNotified == null) {
+    	state.lastNotifySeconds = 0
+        state.lastNotified = "Mon Jan 01 00:00:00 2000"
+        logWriter("Error getting last Notified: ${state.lastNotified} - (${state.lastNotifySeconds} seconds ago)")
+        return
+    }
+    
     if (timeSince > delayVal) {
-    	if (state.lastNotified == null) { 
-        	lastNotify = 0
-        }
-        else if (lastNotify < notifyVal){
-        	logWriter("Notification was sent ${lastNotify} seconds ago.  Waiting till after ${updateVal} seconds before sending Notification again!")
+        if (state.lastNotifySeconds < notifyVal){
+        	logWriter("Notification was sent ${state.lastNotifySeconds} seconds ago.  Waiting till after ${notifyVal} seconds before sending Notification again!")
             return
         }
-        lastNotify = 0
-        NotifyOnNoUpdate(timeSince)
+        else {
+        	state.lastNotifySeconds = 0
+        	NotifyOnNoUpdate(timeSince)
+        }
     }
 }
 
 //Sends the actual Push Notification
 def NotifyOnNoUpdate(Integer timeSince) {
-	state.lastNotified = new Date()
-    logWriter("Time Since Update: ${timeSince} seconds")
-    
-    def message = "Something is wrong!!! ${it.name} has not updated in the last ${timeSince} seconds..."
-    if (location.contactBookEnabled && recipients) {
+	def now = new Date()
+	def notifiedDt = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy")
+    state.lastNotified = notifiedDt.format(now)
+	    
+    def message = "Something is wrong!!! Efergy Device has not updated in the last ${timeSince} seconds..."
+	
+	if (location.contactBookEnabled && recipients) {
         //log.debug "contact book enabled!"
         sendNotificationToContacts(message, recipients)
     } else {
@@ -304,6 +333,18 @@ def NotifyOnNoUpdate(Integer timeSince) {
         }
     }
 }
+
+/*
+def GetTimeDiffSeconds(String startDate) {
+	log.debug "GetTimeDiffSeconds(StartDate: ${startDate})"
+	def now = new Date()
+    def startDt = new SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ssZ").parse(startDate)
+    def result
+    def diff = now.getTime() - startDt.getTime()  
+    def diffSeconds = (int) (long) diff / 1000
+    //def diffMinutes = (int) (long) diff / 60000
+    return diffSeconds
+}*/
 
 //Returns time difference is seconds 
 def GetTimeDiffSeconds(String startDate) {
@@ -334,10 +375,6 @@ def getUsageData() {
 	def estUseClosure = { 
         estUseResp -> 
             //Sends extended metrics to tiles
-            /*state.todayUsage = "Today\'s Usage: \$${estUseResp.data.day_tariff.estimate} (${estUseResp.data.day_kwh.estimate} kWh)"
-            state.monthUsage = "${state.monthName} Usage\n\$${estUseResp.data.month_tariff.previousSum} (${estUseResp.data.month_kwh.previousSum} kWh)"
-            state.monthEst = "${state.monthName}\'s Cost\n(Est.)\n\$${estUseResp.data.month_tariff.estimate}" */
-            
             state.todayUsage = "Today\'s Usage: \$${estUseResp.data.day_tariff.estimate} (${estUseResp.data.day_kwh.estimate} kWh)"
             state.monthUsage = "${state.monthName} Usage \$${estUseResp.data.month_tariff.previousSum} (${estUseResp.data.month_kwh.previousSum} kWh)"
             state.monthEst = "${state.monthName}\'s Cost (Est.) \$${estUseResp.data.month_tariff.estimate}"
@@ -459,7 +496,7 @@ def getHubData() {
             //Converts http response data to list
 			statusList = new JsonSlurper().parseText(respData)
 			
-           hubId = statusList.hid
+           	hubId = statusList.hid
             hubMacAddr = statusList.listOfMacs.mac
     		hubStatus = statusList.listOfMacs.status
     		hubTsHuman = statusList.listOfMacs.tsHuman
