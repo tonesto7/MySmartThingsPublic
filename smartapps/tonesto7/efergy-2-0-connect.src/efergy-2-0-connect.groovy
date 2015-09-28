@@ -428,10 +428,10 @@ def getReadingData() {
                     	cidUnit = rec.units
         			break 
      			}
-            	if (rec.age >= 11 && rec.age <= 300) { 
-                	logWriter("Warning!!! There appears to be some sort of delay.  The last reading was received ${rec.age} seconds ago...")
-                    refresh()  /* If time exceeds 10 seconds try to initiate a refresh.  */
-                }
+            	//if (rec.age >= 30 && rec.age <= 300) { 
+                	//logWriter("Warning!!! There appears to be some sort of delay.  The last reading was received ${rec.age} seconds ago...")
+                    //refresh()  /* If time exceeds 30 seconds try to initiate a refresh.  */
+                //}
 		}
             
  		//Convert data: values to individual strings
