@@ -227,7 +227,7 @@ def refresh() {
     if (recipients) { checkForNotify() }
    
     updateDeviceData()
-    log.debug ""
+    logWriter("")
 }
 
 //Create Refresh schedule to refresh device data (Triggers roughly every 30 seconds)
