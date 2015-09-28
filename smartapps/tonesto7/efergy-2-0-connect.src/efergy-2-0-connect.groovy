@@ -216,11 +216,14 @@ def updateDeviceData() {
 def refresh() {
 	checkSchedule()
     logWriter("")	
-	log.debug "Refreshing Efergy Data" 
+	log.debug "Refreshing Efergy Data"
+    
     getDayMonth()
     getReadingData()
  	getUsageData()
     getHubData()
+    
+    //If any people have been added for notification then it will check to see if it should notify
     if (recipients) { checkForNotify() }
    
     updateDeviceData()
