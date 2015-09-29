@@ -14,7 +14,7 @@
 *
 *  ---------------------------
 *	v2.1 (Sept 18th, 2015)
-*	- Added the ability to change the icon via toggle in smartapp preferences
+*	- Remove debug logging from preferences.  It's now controlled from the smartapp
 *
 *	v2.0 (Sept 15th, 2015)
 *	- Device is now installed and updated via the Efergy 2.0 (Connect) SmartApp
@@ -36,7 +36,7 @@ import groovy.time.TimeCategory
 import groovy.time.TimeDuration
 
 def devTypeVer() {"2.1"}
-def versionDate() {"9-18-2015"}
+def versionDate() {"9-20-2015"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
@@ -56,7 +56,7 @@ metadata {
 	tiles (scale: 2) {
     	multiAttributeTile(name:"power", type:"generic", width:6, height:4) {
     		tileAttribute("device.power", key: "PRIMARY_CONTROL") {
-      			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/a6qf77smydsiir7/power_icon_bk.png", 
+      			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/vfxkm0hp6jsl56m/power_icon_bk.png", 
                 foregroundColor: "#000000",
                 backgroundColors:[
 					[value: 1, color: "#00cc00"], //Light Green
