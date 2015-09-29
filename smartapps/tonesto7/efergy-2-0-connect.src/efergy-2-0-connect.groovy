@@ -39,9 +39,9 @@ definition(
     author: "${textAuthor()}",
     description: "${textDesc()}",
 	category: "My Apps",
-	iconUrl:   "https://dl.dropboxusercontent.com/s/ygekf7djoe2aebn/efergy_128.png",
-	iconX2Url: "https://dl.dropboxusercontent.com/s/sdkupgjznvqhdic/efergy_256.png",
-	iconX3Url: "https://dl.dropboxusercontent.com/s/f2ysb7j38ql5734/efergy_512.png"
+	iconUrl:   "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png",
+	iconX2Url: "https://dl.dropboxusercontent.com/s/ysqycalevj2rvtp/efergy_256.png",
+	iconX3Url: "https://dl.dropboxusercontent.com/s/56740lxra2qkqix/efergy_512.png"
 )
 
 //Change This to rename the Defaul App Name
@@ -90,7 +90,7 @@ def prefPage() {
     
 	dynamicPage(name: "prefPage", title: "Preferences", uninstall: true, install: true) {
         section("App Details:") {
-        	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7", image: "https://dl.dropboxusercontent.com/s/ygekf7djoe2aebn/efergy_128.png"
+        	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7", image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
     	}
         section("App Description:"){
         	paragraph "${textDesc()}"
