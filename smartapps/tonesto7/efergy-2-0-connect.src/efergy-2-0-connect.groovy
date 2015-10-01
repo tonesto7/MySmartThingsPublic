@@ -13,6 +13,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  ---------------------------
+ *  v2.3 (Sept 28th, 2015)
+ *	- Added the new single instance only platform feature. to prevent multiple installs of this service manager
  *  v2.2 (Sept 28th, 2015)
  *	- Reworked Scheduling Mechanism. The application now checks for updates to the timestamp every 5 minutes
  *	- If there hasn't been an update it reschedules all of the Jobs
@@ -41,8 +43,8 @@ definition(
 	category: "My Apps",
 	iconUrl:   "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png",
 	iconX2Url: "https://dl.dropboxusercontent.com/s/ysqycalevj2rvtp/efergy_256.png",
-	iconX3Url: "https://dl.dropboxusercontent.com/s/56740lxra2qkqix/efergy_512.png"
-)
+	iconX3Url: "https://dl.dropboxusercontent.com/s/56740lxra2qkqix/efergy_512.png",
+    singleInstance: true)
 
 //Change This to rename the Defaul App Name
 def appName() { "Efergy 2.0 (Connect)" }
@@ -51,9 +53,9 @@ def appAuthor() { "Anthony S." }
 //So is this...
 def appNamespace() { "tonesto7" }
 //This one too...
-def appVersion() { "2.2.0" }
+def appVersion() { "2.3.0" }
 //Definitely this one too!
-def versionDate() { "9-28-2015" }
+def versionDate() { "10-1-2015" }
 //Application Description
 def appDesc() { "This app will connect to the Efergy Servers and create the device automatically for you.  It will also update the device info every 30ish seconds" }
 
