@@ -13,7 +13,7 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  ---------------------------
- *  v2.3 (Sept 28th, 2015)
+ *  v2.3 (Oct 1st, 2015)
  *	- Added the new single instance only platform feature. to prevent multiple installs of this service manager
  *  v2.2 (Sept 28th, 2015)
  *	- Reworked Scheduling Mechanism. The application now checks for updates to the timestamp every 5 minutes
@@ -55,7 +55,7 @@ def appNamespace() { "tonesto7" }
 //This one too...
 def appVersion() { "2.3.0" }
 //Definitely this one too!
-def versionDate() { "10-1-2015" }
+def versionDate() { "10-01-2015" }
 //Application Description
 def appDesc() { "This app will connect to the Efergy Servers and create the device automatically for you.  It will also update the device info every 30ish seconds" }
 
@@ -218,7 +218,7 @@ def updateDeviceData() {
 def refresh() {
 	checkSchedule()
     logWriter("")	
-	log.debug "Refreshing Efergy Data"
+	log.debug "Refreshing Efergy Energy data from engage.efergy.com"
     
     getDayMonth()
     getReadingData()
@@ -338,18 +338,6 @@ def NotifyOnNoUpdate(Integer timeSince) {
         }
     }
 }
-
-/*
-def GetTimeDiffSeconds(String startDate) {
-	log.debug "GetTimeDiffSeconds(StartDate: ${startDate})"
-	def now = new Date()
-    def startDt = new SimpleDateFormat("yyyy-mm-dd'T'HH:mm:ssZ").parse(startDate)
-    def result
-    def diff = now.getTime() - startDt.getTime()  
-    def diffSeconds = (int) (long) diff / 1000
-    //def diffMinutes = (int) (long) diff / 60000
-    return diffSeconds
-}*/
 
 //Returns time difference is seconds 
 def GetTimeDiffSeconds(String startDate) {
