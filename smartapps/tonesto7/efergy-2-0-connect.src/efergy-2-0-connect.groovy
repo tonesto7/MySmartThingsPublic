@@ -86,8 +86,6 @@ def loginPage() {
 /* Preferences */
 def prefPage() {
 	if(state.showLogging == null) { state.showLogging = false }
-    if(state.darkIcon == null) { state.darkIcon = false 
-        logWriter("Dark Icon was null but was changed to False") }
     if(state.efergyAuthToken == null) { getAuthToken() }
     
 	dynamicPage(name: "prefPage", title: "Preferences", uninstall: true, install: true) {
