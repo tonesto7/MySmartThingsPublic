@@ -117,12 +117,12 @@ def prefPage() {
         	input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true
         	if(showLogging && !state.showLogging) { 
             	state.showLogging = true
-            	log.debug "Debug Logging Enabled!!!"
+            	log.info "Debug Logging Enabled!!!"
                 refresh()
             }
         	if(!showLogging && state.showLogging){ 
             	state.showLogging = false 
-            	log.debug "Debug Logging Disabled!!!"
+            	log.info "Debug Logging Disabled!!!"
                 refresh()
             }
 		}
@@ -238,10 +238,10 @@ private addSchedule() {
 
 private checkSchedule() {
 	def timeSince
-   	if (state.hubTsHuman !=null) {
+   	if (state.hubTsHuman) {
     	timeSince = GetTimeDiffSeconds(state.hubTsHuman)
     }
-    if (timeSince == null || timeSince > 360) {
+    if (!timeSince || timeSince > 360) {
     	log.warn "It has been more that 5 minutes since last refresh"
         log.debug "Scheduling Issue found Re-Initializing Schedule... Data should resume refreshing in 30 seconds" 
         addSchedule()
@@ -284,29 +284,27 @@ def getDayMonth() {
 
 //Checks for Time passed since last update and sends notification if enabled
 def checkForNotify() {
-    if(state.notifyDelayMin == null) { state.notifyDelayMin = 50 }
-    if(state.notifyAfterMin == null) { state.notifyAfterMin = 60 }
+    if(!state.notifyDelayMin) { state.notifyDelayMin = 50 }
+    if(!state.notifyAfterMin) { state.notifyAfterMin = 60 }
     logWriter("Delay X Min: " + state.notifyDelayMin)
     logWriter("After X Min: " + state.notifyAfterMin)
     def delayVal = state.notifyDelayMin * 60
     def notifyVal = state.notifyAfterMin * 60
-    
-    def lastNotifySeconds = GetTimeDiffSeconds(state.lastNotified)
     def timeSince = GetTimeDiffSeconds(state.hubTsHuman)
     
-    if (lastNotifySeconds != null && state.lastNotified != null) {
-    	state.lastNotifySeconds = lastNotifySeconds
-        logWriter("Last Notified: ${state.lastNotified} - (${state.lastNotifySeconds} seconds ago)")
-    }
-
-	else if (lastNotifySeconds == null || state.lastNotified == null) {
+    if (!state.lastNotifySeconds || !state.lastNotified) {
     	state.lastNotifySeconds = 0
         state.lastNotified = "Mon Jan 01 00:00:00 2000"
         logWriter("Error getting last Notified: ${state.lastNotified} - (${state.lastNotifySeconds} seconds ago)")
         return
     }
     
-    if (timeSince > delayVal) {
+    else if (state.lastNotifySeconds && state.lastNotified) {
+    	state.lastNotifySeconds = GetTimeDiffSeconds(state.lastNotified)
+        logWriter("Last Notified: ${state.lastNotified} - (${state.lastNotifySeconds} seconds ago)")
+    }
+
+	if (timeSince > delayVal) {
         if (state.lastNotifySeconds < notifyVal){
         	logWriter("Notification was sent ${state.lastNotifySeconds} seconds ago.  Waiting till after ${notifyVal} seconds before sending Notification again!")
             return
@@ -327,7 +325,6 @@ def NotifyOnNoUpdate(Integer timeSince) {
     def message = "Something is wrong!!! Efergy Device has not updated in the last ${timeSince} seconds..."
 	
 	if (location.contactBookEnabled && recipients) {
-        //log.debug "contact book enabled!"
         sendNotificationToContacts(message, recipients)
     } else {
         logWriter("contact book not enabled")
@@ -341,7 +338,6 @@ def NotifyOnNoUpdate(Integer timeSince) {
 def GetTimeDiffSeconds(String startDate) {
 	def now = new Date()
     def startDt = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy").parse(startDate)
-    def result
     def diff = now.getTime() - startDt.getTime()  
     def diffSeconds = (int) (long) diff / 1000
     //def diffMinutes = (int) (long) diff / 60000
