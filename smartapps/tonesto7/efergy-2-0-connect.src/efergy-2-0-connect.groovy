@@ -89,7 +89,6 @@ def loginPage() {
 	}
 }
 
-
 /* Preferences */
 def prefPage() {
 	if (!state.efergyAuthToken) { getAuthToken() } 
@@ -99,21 +98,16 @@ def prefPage() {
         section("App Details:") {
         	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7\n\n${textDesc()}", image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
     	}
-        //section("App Description:"){
-        //	paragraph ""
-        //}	
         if (!state.efergyAuthToken) {
         	section() { 
             	paragraph "Authentication Token is Missing... Please login again!!!"
         		href "loginPage", title:"Login to Efergy", description: "Tap to loging..." 
         	}
         }
-		if (state.efergyAuthToken) {
-			section() { 
+        if (state.efergyAuthToken) {
+        	section() { 
         		href "hubInfoPage", title:"View Hub Info", description: "Tap to view more..." 
         	}
-        }
-        if (state.efergyAuthToken) {
         	section("More Options", hidden: false, hideable: true){
             	input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true) {
             		input "phone", "phone", title: "Warn with text message (optional)",
@@ -161,7 +155,6 @@ def hubInfoPage () {
 
 /* Initialization */
 def installed() { 
-	
 	initialize() 
 }
 
