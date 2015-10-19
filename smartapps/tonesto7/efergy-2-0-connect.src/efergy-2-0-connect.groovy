@@ -13,6 +13,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  ---------------------------
+ *  v2.4 (Oct 19th, 2015)
+ *	- Updated the code to handle bad authentication events
  *  v2.3 (Oct 1st, 2015)
  *	- Added the new single instance only platform feature. to prevent multiple installs of this service manager
  *  v2.2 (Sept 28th, 2015)
@@ -53,9 +55,9 @@ def appAuthor() { "Anthony S." }
 //So is this...
 def appNamespace() { "tonesto7" }
 //This one too...
-def appVersion() { "2.3.0" }
+def appVersion() { "2.4.0" }
 //Definitely this one too!
-def versionDate() { "10-01-2015" }
+def versionDate() { "10-19-2015" }
 //Application Description
 def appDesc() { "This app will connect to the Efergy Servers and create the device automatically for you.  It will also update the device info every 30ish seconds" }
 
@@ -67,65 +69,78 @@ preferences {
 }
 
 def startPage() {
-	if (state.efergyAuthToken != null) { return prefPage() }
+	if(!state.showLogging) { state.showLogging = false }
+	if (state.efergyAuthToken) { return prefPage() }
     else { return loginPage() }
 }
 
 def loginPage() {
-    def showUninstall = username != null && password != null 
-   	return dynamicPage(name: "loginPage", title: "Efergy Login", nextPage:"prefPage", uninstall: showUninstall, install: false) {
-    	
-		section("Efergy Login Page") {
+    return dynamicPage(name: "loginPage", title: "Efergy Login", nextPage: prefPage, uninstall: false, install: false) {
+    	section("Efergy Login Page") {
         	paragraph "Please enter your https://engage.efergy.com login credentials to generate you Authentication Token and install the device automatically for you."
 			input("username", "email", title: "Username", description: "Efergy Username (email address)")
 			input("password", "password", title: "Password", description: "Efergy Password")
+            log.debug "login status: ${state.loginStatus} - ${state.loginDesc}"
+            if (state.loginStatus != "ok" || state.loginDesc != null) {
+            	paragraph "${state.loginDesc}... Please try again!!!"
+            }
 		}
+        
 	}
 }
 
+
 /* Preferences */
 def prefPage() {
-	if(state.showLogging == null) { state.showLogging = false }
-    if(state.efergyAuthToken == null) { getAuthToken() }
-    
-	dynamicPage(name: "prefPage", title: "Preferences", uninstall: true, install: true) {
+	if (!state.efergyAuthToken) { getAuthToken() } 
+    if (state.loginStatus != "ok") { return loginPage() }
+    def showUninstall = state.efergyAuthToken != null
+	dynamicPage(name: "prefPage", title: "Preferences", uninstall: showUninstall, install: true) {
         section("App Details:") {
-        	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7", image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
+        	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7\n\n${textDesc()}", image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
     	}
-        section("App Description:"){
-        	paragraph "${textDesc()}"
-        }	
-
-		section() { 
-        	href "hubInfoPage", title:"View Hub Info", description: "Tap to view more..." 
-        }
-        
-		section("More Options", hidden: false, hideable: true){
-            input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true) {
-            	input "phone", "phone", title: "Warn with text message (optional)",
-                	description: "Phone Number", required: false, submitOnChange: true
+        //section("App Description:"){
+        //	paragraph ""
+        //}	
+        if (!state.efergyAuthToken) {
+        	section() { 
+            	paragraph "Authentication Token is Missing... Please login again!!!"
+        		href "loginPage", title:"Login to Efergy", description: "Tap to loging..." 
         	}
-            // Set Notification Recipients  
-            if (location.contactBookEnabled && recipients) {
-            	input "notifyAfterMin", "number", title: "Send Notification after (X) minutes of no updates", required: false, defaultValue: "60", submitOnChange: true
-                input "notifyDelayMin", "number", title: "Only Send Notification every (x) minutes...", required: false, defaultValue: "50", submitOnChange: true
-                state.notifyAfterMin = notifyAfterMin
-                state.notifyDelayMin = notifyDelayMin         
-            }
+        }
+		if (state.efergyAuthToken) {
+			section() { 
+        		href "hubInfoPage", title:"View Hub Info", description: "Tap to view more..." 
+        	}
+        }
+        if (state.efergyAuthToken) {
+        	section("More Options", hidden: false, hideable: true){
+            	input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true) {
+            		input "phone", "phone", title: "Warn with text message (optional)",
+                		description: "Phone Number", required: false, submitOnChange: true
+        		}
+            	// Set Notification Recipients  
+            	if (location.contactBookEnabled && recipients) {
+            		input "notifyAfterMin", "number", title: "Send Notification after (X) minutes of no updates", required: false, defaultValue: "60", submitOnChange: true
+                	input "notifyDelayMin", "number", title: "Only Send Notification every (x) minutes...", required: false, defaultValue: "50", submitOnChange: true
+                	state.notifyAfterMin = notifyAfterMin
+                	state.notifyDelayMin = notifyDelayMin         
+            	}
             
-            paragraph "This will help if you are having issues with data not updating...\n** This will generate a TON of Log Entries so only enable if needed **"
-        	input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true
-        	if(showLogging && !state.showLogging) { 
-            	state.showLogging = true
-            	log.info "Debug Logging Enabled!!!"
-                refresh()
-            }
-        	if(!showLogging && state.showLogging){ 
-            	state.showLogging = false 
-            	log.info "Debug Logging Disabled!!!"
-                refresh()
-            }
-		}
+            	paragraph "This will help if you are having issues with data not updating...\n** This will generate a TON of Log Entries so only enable if needed **"
+        		input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true
+        		if(showLogging && !state.showLogging) { 
+            		state.showLogging = true
+            		log.info "Debug Logging Enabled!!!"
+                	refresh()
+            	}
+        		if(!showLogging && state.showLogging){ 
+            		state.showLogging = false 
+            		log.info "Debug Logging Disabled!!!"
+                	refresh()
+            	}
+			}
+        }
    	}
 }
 
@@ -146,6 +161,7 @@ def hubInfoPage () {
 
 /* Initialization */
 def installed() { 
+	
 	initialize() 
 }
 
@@ -155,7 +171,6 @@ def updated() {
 }
 
 def uninstalled() {
-	unsubscribe()
 	unschedule()
 	removeChildDevices(getChildDevices())
 }
@@ -214,20 +229,22 @@ def updateDeviceData() {
 
 // refresh command
 def refresh() {
-	checkSchedule()
-    logWriter("")	
-	log.debug "Refreshing Efergy Energy data from engage.efergy.com"
+	if (state.efergyAuthToken) {
+		checkSchedule()
+    	logWriter("")	
+		log.debug "Refreshing Efergy Energy data from engage.efergy.com"
     
-    getDayMonth()
-    getReadingData()
- 	getUsageData()
-    getHubData()
+    	getDayMonth()
+    	getReadingData()
+ 		getUsageData()
+    	getHubData()
     
-    //If any people have been added for notification then it will check to see if it should notify
-    if (recipients) { checkForNotify() }
+    	//If any people have been added for notification then it will check to see if it should notify
+    	if (recipients) { checkForNotify() }
    
-    updateDeviceData()
-    logWriter("")
+    	updateDeviceData()
+    	logWriter("")
+    }
 }
 
 //Create Refresh schedule to refresh device data (Triggers roughly every 30 seconds)
@@ -243,7 +260,7 @@ private checkSchedule() {
     }
     if (!timeSince || timeSince > 360) {
     	log.warn "It has been more that 5 minutes since last refresh"
-        log.debug "Scheduling Issue found Re-Initializing Schedule... Data should resume refreshing in 30 seconds" 
+        log.debug "Scheduling Issue found... Re-initializing schedule... Data should resume refreshing in 30 seconds" 
         addSchedule()
     }
 }
@@ -254,7 +271,14 @@ def getAuthToken() {
     	resp -> 
         log.debug("Auth Response: " + resp.data)  
         if (resp.data.status == "ok") { 
+        	state.loginStatus = "ok"
+            state.loginDesc = resp.data.desc
         	state.efergyAuthToken = resp.data.token       
+        }
+        if (resp.data.desc == "Invalid credentials") { 
+        	state.loginStatus = resp.data.status
+            state.loginDesc = resp.data.desc
+           	return
         }
     }
 	def params = [
