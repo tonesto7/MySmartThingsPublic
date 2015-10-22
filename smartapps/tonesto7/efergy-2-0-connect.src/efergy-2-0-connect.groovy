@@ -155,10 +155,14 @@ def hubInfoPage () {
 
 /* Initialization */
 def installed() { 
-	initialize() 
+	sendNotificationEvent("${textAppName()} - ${appVersion()} (${appVerDate()}) installed...")
+	log.info "${textAppName()} - ${appVersion()} (${appVerDate()}) installed..."
+    initialize() 
 }
 
 def updated() { 
+	sendNotificationEvent("${textAppName()} - ${appVersion()} (${appVerDate()}) updated...")
+	log.info "${textAppName()} - ${appVersion()} (${appVerDate()}) updated..."
 	unsubscribe()
 	initialize() 
 }
