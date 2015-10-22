@@ -100,10 +100,23 @@ def prefPage() {
     	}
         if (state.efergyAuthToken) {
         	section() { 
-        		href "hubInfoPage", title:"View Hub Info", description: "Tap to view more..." 
+        		href "hubInfoPage", title:"View Hub Info", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/amhupeknid6osmu/St_hub.png"
         	}
-        	section("More Options", hidden: false, hideable: true){
-            	input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true) {
+        	section("More Options", hidden: true, hideable: true){
+            	paragraph "This will help if you are having issues with data not updating...\n** This will generate a TON of Log Entries so only enable if needed **"
+        		input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true, image: "https://dl.dropboxusercontent.com/s/nsxve4ciehlk3op/log_icon.png"
+        		if(showLogging && !state.showLogging) { 
+            		state.showLogging = true
+            		log.info "Debug Logging Enabled!!!"
+                	refresh()
+            	}
+        		if(!showLogging && state.showLogging){ 
+            		state.showLogging = false 
+            		log.info "Debug Logging Disabled!!!"
+                	refresh()
+            	}
+            	
+                input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true) {
             		input "phone", "phone", title: "Warn with text message (optional)",
                 		description: "Phone Number", required: false, submitOnChange: true
         		}
@@ -115,18 +128,7 @@ def prefPage() {
                 	state.notifyDelayMin = notifyDelayMin         
             	}
             
-            	paragraph "This will help if you are having issues with data not updating...\n** This will generate a TON of Log Entries so only enable if needed **"
-        		input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true
-        		if(showLogging && !state.showLogging) { 
-            		state.showLogging = true
-            		log.info "Debug Logging Enabled!!!"
-                	refresh()
-            	}
-        		if(!showLogging && state.showLogging){ 
-            		state.showLogging = false 
-            		log.info "Debug Logging Disabled!!!"
-                	refresh()
-            	}
+            	
 			}
         }
         if (!state.efergyAuthToken) {
