@@ -1,5 +1,5 @@
 /**
- *  Efergy 2.0 (Connect)
+ *  Efergy (Connect)
  *
  *  Copyright 2015 Anthony S.
  *
@@ -13,6 +13,8 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  ---------------------------
+ *	v2.5 (Oct 22nd, 2015)
+ *	- Working on the layout of the smart app and icons.  Also trying to add localization options for the currency.
  *  v2.4 (Oct 19th, 2015)
  *	- Updated the code to handle bad authentication events
  *  v2.3 (Oct 1st, 2015)
@@ -55,11 +57,11 @@ def appAuthor() { "Anthony S." }
 //So is this...
 def appNamespace() { "tonesto7" }
 //This one too...
-def appVersion() { "2.4.0" }
+def appVersion() { "2.5.0" }
 //Definitely this one too!
-def versionDate() { "10-19-2015" }
+def appVerDate() { "10-22-2015" }
 //Application Description
-def appDesc() { "This app will connect to the Efergy Servers and create the device automatically for you.  It will also update the device info every 30ish seconds" }
+def appDesc() { "This app will connect to the Efergy Servers and generate a token as well as create the energy device automatically for you.  After that it will manage and update the device info about every 30 seconds" }
 
 preferences {
 	page(name: "startPage")
@@ -94,15 +96,16 @@ def prefPage() {
 	if (!state.efergyAuthToken) { getAuthToken() } 
     if (state.loginStatus != "ok") { return loginPage() }
     def showUninstall = state.efergyAuthToken != null
+    def showDebugSection = state.showLogging
 	dynamicPage(name: "prefPage", title: "Preferences", uninstall: showUninstall, install: true) {
         section("App Details:") {
         	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7\n\n${textDesc()}", image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
     	}
         if (state.efergyAuthToken) {
         	section() { 
-        		href "hubInfoPage", title:"View Hub Info", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/amhupeknid6osmu/St_hub.png"
+        		href "hubInfoPage", title:"View Efergy Hub Info", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/amhupeknid6osmu/St_hub.png"
         	}
-        	section("More Options", hidden: true, hideable: true){
+        	section("Debug Options", hidden: showDebugSection, hideable: true){
             	paragraph "This will help if you are having issues with data not updating...\n** This will generate a TON of Log Entries so only enable if needed **"
         		input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true, image: "https://dl.dropboxusercontent.com/s/nsxve4ciehlk3op/log_icon.png"
         		if(showLogging && !state.showLogging) { 
@@ -115,7 +118,9 @@ def prefPage() {
             		log.info "Debug Logging Disabled!!!"
                 	refresh()
             	}
-            	
+            }
+            
+            section("Notification Options", hidden: true, hideable: true){	
                 input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true) {
             		input "phone", "phone", title: "Warn with text message (optional)",
                 		description: "Phone Number", required: false, submitOnChange: true
@@ -237,6 +242,7 @@ def refresh() {
     	getReadingData()
  		getUsageData()
     	getHubData()
+        getTariffData()
     
     	//If any people have been added for notification then it will check to see if it should notify
     	if (recipients) { checkForNotify() }
@@ -406,6 +412,33 @@ def getUsageData() {
     	]
 	httpGet(params, estUseClosure)
 }
+
+// Get tariff energy metrics
+def getTariffData() {
+	try {
+		def tariffClosure = { 
+        	tariffResp -> 
+        		def tariffRate = tariffResp.data.tariff.plan.plan.planDetail.rate.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+                
+            	//Sends extended metrics to tiles
+            	state.tariffRate = "Tariff Rate: ${tariffRate}"
+            	
+            	//Show Debug logging if enabled in preferences
+            	logWriter(" ")
+            	logWriter("-------------------TARIFF RATE DATA-------------------")
+                logWriter("Tariff Rate: ${tariffRate}")
+         	}
+                
+		def params = [
+    		uri: "https://engage.efergy.com",
+    		path: "/mobile_proxy/getTariff",
+        	query: ["token": state.efergyAuthToken],
+        	contentType: 'application/json'
+    		]
+		httpGet(params, tariffClosure)
+    }
+    catch (e) { log.error "getTariffData Exception: ${e}" }
+}
  
 /* Get the sensor reading
 ****  Json Returned: {"cid":"PWER","data":[{"1440023704000":0}],"sid":"123456","units":"kWm","age":142156},{"cid":"PWER_GAC","data":[{"1440165858000":1343}],"sid":"123456","units":null,"age":2}
@@ -438,11 +471,7 @@ def getReadingData() {
                     	cidUnit = rec.units
         			break 
      			}
-            	//if (rec.age >= 30 && rec.age <= 300) { 
-                	//logWriter("Warning!!! There appears to be some sort of delay.  The last reading was received ${rec.age} seconds ago...")
-                    //refresh()  /* If time exceeds 30 seconds try to initiate a refresh.  */
-                //}
-		}
+			}
             
  		//Convert data: values to individual strings
 		for (item in cidData[0]) {
@@ -556,7 +585,7 @@ private def logWriter(value) {
 *******************************************************************************/
 private def textAppName() 	{ def text = "${appName()}" }	
 private def textVersion() 	{ def text = "Version: ${appVersion()}" }
-private def textModified() 	{ def text = "Updated: ${versionDate()}" }
+private def textModified() 	{ def text = "Updated: ${appVerDate()}" }
 private def textAuthor() 	{ def text = "${appAuthor()}" }
 private def textNamespace() { def text = "${appNamespace()}" }
 private def textVerInfo() { def text = "${appVerInfo()}" }
