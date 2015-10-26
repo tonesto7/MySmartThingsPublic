@@ -1,36 +1,7 @@
 /**
- *  Efergy (Connect)
+ *  Efergy 2.0 (Connect)
  *
  *  Copyright 2015 Anthony S.
- *
- *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- *  in compliance with the License. You may obtain a copy of the License at:
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- *  Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
- *  on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
- *  for the specific language governing permissions and limitations under the License.
- *
- *  ---------------------------
- *	v2.5 (Oct 22nd, 2015)
- *	- Working on the layout of the smart app and icons.  Also trying to add localization options for the currency.
- *  v2.4 (Oct 19th, 2015)
- *	- Updated the code to handle bad authentication events
- *  v2.3 (Oct 1st, 2015)
- *	- Added the new single instance only platform feature. to prevent multiple installs of this service manager
- *  v2.2 (Sept 28th, 2015)
- *	- Reworked Scheduling Mechanism. The application now checks for updates to the timestamp every 5 minutes
- *	- If there hasn't been an update it reschedules all of the Jobs
- *	- Notifications now work correctly (I think)
- *  - Please don't judge the devices updates by the activity log in the mobile app.  It is not very accurate.
- *
- *	v2.1 (Sept 18th, 2015)
- *	- Enabling Debug logging in SmartApp also enables it in the Device type.
- *
- *	v2.0 (Sept 15th, 2015)
- *	- Device is now installed and updated via the Efergy 2.0 (Connect) SmartApp
- *
  *   ---------------------------
  */
  
@@ -59,83 +30,84 @@ def appNamespace() { "tonesto7" }
 //This one too...
 def appVersion() { "2.5.0" }
 //Definitely this one too!
-def appVerDate() { "10-22-2015" }
+def appVerDate() { "10-26-2015" }
 //Application Description
 def appDesc() { "This app will connect to the Efergy Servers and generate a token as well as create the energy device automatically for you.  After that it will manage and update the device info about every 30 seconds" }
+//Adds version changes to info page
+def appVerInfo() {	
+	"v2.5 (Oct 26th, 2015)\n" +
+ 	"Restructured the main page layout of the smart app and icons\n" +  
+ 	"Added Currency Units (If TimeZone is America the Unit is automatically '\$'... If your not in America you can change it in preferences)\n" + 
+ 	"\n"+
+    "v2.4 (Oct 19th, 2015)\n" +
+ 	"Updated the code to handle bad authentication events\n" +
+    "\n" +
+ 	"v2.3 (Oct 1st, 2015)\n" +
+	"Added the new single instance only platform feature. to prevent multiple installs of this service manager\n" +
+    "--------------------------------------------------------------"
+}
 
 preferences {
 	page(name: "startPage")
-    page(name: "loginPage", title: "Efergy Login")
-    page(name: "prefPage", title: "Preferences")
-	page(name: "hubInfoPage", title: "Hub Information")
+    page(name: "loginPage")
+    page(name: "mainPage")
+    page(name: "prefsPage")
+	page(name: "hubInfoPage")
+    page(name: "infoPage")
+    page(name: "savePage")
 }
 
 def startPage() {
+	if(!state.appInstalled) { state.appInstalled = false }
 	if(!state.showLogging) { state.showLogging = false }
-	if (state.efergyAuthToken) { return prefPage() }
+    if (location.timeZone.ID.contains("America/")) { state.currencySym = "\$" }
+    if (state.efergyAuthToken) { return mainPage() }
     else { return loginPage() }
 }
 
+/* Efergy Login Page */
 def loginPage() {
-    return dynamicPage(name: "loginPage", title: "Efergy Login", nextPage: prefPage, uninstall: false, install: false) {
+    return dynamicPage(name: "loginPage", nextPage: mainPage, uninstall: false, install: false) {
     	section("Efergy Login Page") {
         	paragraph "Please enter your https://engage.efergy.com login credentials to generate you Authentication Token and install the device automatically for you."
 			input("username", "email", title: "Username", description: "Efergy Username (email address)")
 			input("password", "password", title: "Password", description: "Efergy Password")
             log.debug "login status: ${state.loginStatus} - ${state.loginDesc}"
-            if (state.loginStatus != "ok" || state.loginDesc != null) {
+            if (state.loginStatus != null && state.loginDesc != null && state.loginStatus != "ok") {
             	paragraph "${state.loginDesc}... Please try again!!!"
             }
 		}
-        
 	}
 }
 
 /* Preferences */
-def prefPage() {
+def mainPage() {
 	if (!state.efergyAuthToken) { getAuthToken() } 
+    if (!state.currencySym) { state.currencySym = "\$" }
+    def notif = recipients ? true : false
     if (state.loginStatus != "ok") { return loginPage() }
-    def showUninstall = state.efergyAuthToken != null
-    def showDebugSection = state.showLogging
-	dynamicPage(name: "prefPage", title: "Preferences", uninstall: showUninstall, install: true) {
-        section("App Details:") {
-        	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7\n\n${textDesc()}", image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
+    def showUninstall = state.appInstalled
+
+	dynamicPage(name: "mainPage", uninstall: showUninstall, install: true) {
+        section("App and Locale Info:") {
+        	paragraph "Name: ${textAppName()}\n${textVersion()}\n${textModified()}\nTimeZone: ${location.timeZone.ID}\nCurrency: ${getCurrency()}", 
+            	image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
     	}
         if (state.efergyAuthToken) {
-        	section() { 
-        		href "hubInfoPage", title:"View Efergy Hub Info", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/amhupeknid6osmu/St_hub.png"
+            section("Efergy Hub:") { 
+        		href "hubInfoPage", title:"View Hub Info", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/amhupeknid6osmu/St_hub.png"
         	}
-        	section("Debug Options", hidden: showDebugSection, hideable: true){
-            	paragraph "This will help if you are having issues with data not updating...\n** This will generate a TON of Log Entries so only enable if needed **"
-        		input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true, image: "https://dl.dropboxusercontent.com/s/nsxve4ciehlk3op/log_icon.png"
-        		if(showLogging && !state.showLogging) { 
-            		state.showLogging = true
-            		log.info "Debug Logging Enabled!!!"
-                	refresh()
-            	}
-        		if(!showLogging && state.showLogging){ 
-            		state.showLogging = false 
-            		log.info "Debug Logging Disabled!!!"
-                	refresh()
-            	}
+			
+            section("Preferences:") {
+            	href "prefsPage", title: "App and Locale Preferences", description: "Tap to configure.\n\nDebug Logging: ${state.showLogging.toString().capitalize()}\nNotifications: ${notif.toString().capitalize()}", image: "https://dl.dropboxusercontent.com/s/2s3jvtlfrctdcsc/settings_icon.png" 
             }
-            
-            section("Notification Options", hidden: true, hideable: true){	
-                input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true) {
-            		input "phone", "phone", title: "Warn with text message (optional)",
-                		description: "Phone Number", required: false, submitOnChange: true
-        		}
-            	// Set Notification Recipients  
-            	if (location.contactBookEnabled && recipients) {
-            		input "notifyAfterMin", "number", title: "Send Notification after (X) minutes of no updates", required: false, defaultValue: "60", submitOnChange: true
-                	input "notifyDelayMin", "number", title: "Only Send Notification every (x) minutes...", required: false, defaultValue: "50", submitOnChange: true
-                	state.notifyAfterMin = notifyAfterMin
-                	state.notifyDelayMin = notifyDelayMin         
-            	}
-            
-            	
-			}
+			
+            section(" ") {
+            	//App Details and Licensing Page
+            	href "infoPage", title:"App Details and Licensing", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/y2lcy6iho0dpsp5/info_icon.png"
+            }
         }
+        
         if (!state.efergyAuthToken) {
         	section() { 
             	paragraph "Authentication Token is Missing... Please login again!!!"
@@ -145,10 +117,53 @@ def prefPage() {
    	}
 }
 
+//Defines the Preference Page
+def prefsPage () {
+	dynamicPage(name: "prefsPage", install: false) {
+    	section () {
+        	paragraph "App and Locale Preferences", image: "https://dl.dropboxusercontent.com/s/2s3jvtlfrctdcsc/settings_icon.png" 
+        }
+        section("Currency Selection:"){	
+             	input(name: "currencySym", type: "enum", title: "Select your Currency Symbol", options: ["\$", "£", "€"], defaultValue: "\$", submitOnChange: true, 
+                	image: "https://dl.dropboxusercontent.com/s/7it48iosv1mzcl1/currency_icon.png")
+               	state.currencySym = currencySym
+            }
+    	section("Notifications:"){	
+            input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true, image: "https://dl.dropboxusercontent.com/s/dbpk2ucn2huvj6f/notification_icon.png") {
+            	input "phone", "phone", title: "Warn with text message (optional)", description: "Phone Number", required: false, submitOnChange: true
+        	}
+        }
+		// Set Notification Recipients  
+        if (location.contactBookEnabled && recipients) {
+        	section("Notify Values...", hidden: true, hideable: true) { 
+            	input "notifyAfterMin", "number", title: "Send Notification after (X) minutes of no updates", required: false, defaultValue: "60", submitOnChange: true
+               	input "notifyDelayMin", "number", title: "Only Send Notification every (x) minutes...", required: false, defaultValue: "50", submitOnChange: true
+               	state.notifyAfterMin = notifyAfterMin
+               	state.notifyDelayMin = notifyDelayMin         
+            }
+        }
+        section("Debug Logging:"){
+           	paragraph "FYI... Enabling this also enables logging in the Child Device as well"
+            paragraph "This can help you when you are having issues with data not updating\n** This option generates alot of Log Entries!!! Only enable for troubleshooting **"
+        	input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true, image: "https://dl.dropboxusercontent.com/s/nsxve4ciehlk3op/log_icon.png"
+        	if(showLogging && !state.showLogging) { 
+           		state.showLogging = true
+           		log.info "Debug Logging Enabled!!!"
+               	refresh()
+           	}
+        	if(!showLogging && state.showLogging){ 
+           		state.showLogging = false 
+           		log.info "Debug Logging Disabled!!!"
+               	refresh()
+           	}
+        }
+    }
+}
+
 def hubInfoPage () {
 	if (state.hubName == null) { refresh() }
 	dynamicPage(name: "hubInfoPage", install: false) {
- 		section ("Hub Information") {
+ 		section ("Efergy Hub Information") {
     		paragraph "Hub Name: " + state.hubName
         	paragraph "Hub ID: " + state.hubId
         	paragraph "Hub Mac Address: " + state.hubMacAddr
@@ -160,14 +175,38 @@ def hubInfoPage () {
     }
  }
 
+//Defines the Help Page
+def infoPage () {
+	dynamicPage(name: "infoPage", install: false) {
+		section() { 
+        	paragraph "App Details and Licensing", image: "https://dl.dropboxusercontent.com/s/y2lcy6iho0dpsp5/info_icon.png"
+        }
+        
+        section("About This App:") {
+        	paragraph "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()}\n${textModified()}\nGithub: @tonesto7\n\n${textDesc()}", 
+            	image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
+        }
+        
+        section("App Revision History:") {
+        	paragraph appVerInfo()
+        }
+        
+		section("Licensing Info:") {
+    		paragraph "${textCopyright()}\n${textLicense()}"
+    	}
+	}
+}
+
 /* Initialization */
 def installed() { 
+	state.appInstalled = true
 	sendNotificationEvent("${textAppName()} - ${appVersion()} (${appVerDate()}) installed...")
 	log.info "${textAppName()} - ${appVersion()} (${appVerDate()}) installed..."
     initialize() 
 }
 
 def updated() { 
+	if (!state.appInstalled) { state.appInstalled = true }
 	sendNotificationEvent("${textAppName()} - ${appVersion()} (${appVerDate()}) updated...")
 	log.info "${textAppName()} - ${appVersion()} (${appVerDate()}) updated..."
 	unsubscribe()
@@ -226,8 +265,9 @@ def updateDeviceData() {
 	getAllChildDevices().each { 
     	it.isDebugLogging(state.showLogging.toString())
     	it.updateReadingData(state.powerReading.toString(), state.readingUpdated)
+        it.updateTariffData(state.tariffRate)
 		it.updateUsageData(state.todayUsage, state.monthUsage, state.monthEst)
-		it.updateHubData(state.hubVersion, state.hubStatus)
+		it.updateHubData(state.hubVersion, state.hubStatus, state.hubName)
 	}
 }
 
@@ -280,7 +320,7 @@ def getAuthToken() {
             state.loginDesc = resp.data.desc
         	state.efergyAuthToken = resp.data.token       
         }
-        if (resp.data.desc == "Invalid credentials") { 
+        else { 
         	state.loginStatus = resp.data.status
             state.loginDesc = resp.data.desc
            	return
@@ -311,6 +351,25 @@ def getDayMonth() {
     } 
 }
 
+def getCurrency() {
+	def unitName = ""
+	switch (state.currencySym) {
+    	case '$':
+        	unitName = "US Dollar (\$)"
+        break
+        case '£':
+        	unitName = "British Pound (£)"
+        break
+        case '€':
+        	unitName = "Euro Dollar (€)"
+        break
+    	default:
+        	unitName = "unknown"
+        break
+    }
+    return unitName
+}
+
 //Checks for Time passed since last update and sends notification if enabled
 def checkForNotify() {
     if(!state.notifyDelayMin) { state.notifyDelayMin = 50 }
@@ -321,7 +380,7 @@ def checkForNotify() {
     def notifyVal = state.notifyAfterMin * 60
     def timeSince = GetTimeDiffSeconds(state.hubTsHuman)
     
-    if (!state.lastNotifySeconds || !state.lastNotified) {
+    if ((state.lastNotifySeconds == null && state.lastNotified == null) || (state.lastNotifySeconds == null || state.lastNotified == null)) {
     	state.lastNotifySeconds = 0
         state.lastNotified = "Mon Jan 01 00:00:00 2000"
         logWriter("Error getting last Notified: ${state.lastNotified} - (${state.lastNotifySeconds} seconds ago)")
@@ -388,20 +447,21 @@ def getHubName(String hubType) {
 
 // Get extended energy metrics
 def getUsageData() {
+	try {
 	def estUseClosure = { 
         estUseResp -> 
             //Sends extended metrics to tiles
-            state.todayUsage = "Today\'s Usage: \$${estUseResp.data.day_tariff.estimate} (${estUseResp.data.day_kwh.estimate} kWh)"
-            state.monthUsage = "${state.monthName} Usage \$${estUseResp.data.month_tariff.previousSum} (${estUseResp.data.month_kwh.previousSum} kWh)"
-            state.monthEst = "${state.monthName}\'s Cost (Est.) \$${estUseResp.data.month_tariff.estimate}"
+            state.todayUsage = "Today\'s Usage: ${state.currencySym}${estUseResp.data.day_tariff.estimate} (${estUseResp.data.day_kwh.estimate} kWh)"
+            state.monthUsage = "${state.monthName} Usage ${state.currencySym}${estUseResp.data.month_tariff.previousSum} (${estUseResp.data.month_kwh.previousSum} kWh)"
+            state.monthEst = "${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp.data.month_tariff.estimate}"
             
             //Show Debug logging if enabled in preferences
             logWriter(" ")
             logWriter("-------------------ESTIMATED USAGE DATA-------------------")
             //logWriter("Http Usage Response: $estUseResp.data")
-            logWriter("TodayUsage: Today\'s Usage: \$${estUseResp.data.day_tariff.estimate} (${estUseResp.data.day_kwh.estimate} kWh)")
-            logWriter("MonthUsage: ${state.monthName} Usage \$${estUseResp.data.month_tariff.previousSum} (${estUseResp.data.month_kwh.previousSum} kWh)")
-            logWriter("MonthEst: ${state.monthName}\'s Cost (Est.) \$${estUseResp.data.month_tariff.estimate}")
+            logWriter("TodayUsage: Today\'s Usage: ${state.currencySym}${estUseResp.data.day_tariff.estimate} (${estUseResp.data.day_kwh.estimate} kWh)")
+            logWriter("MonthUsage: ${state.monthName} Usage ${state.currencySym}${estUseResp.data.month_tariff.previousSum} (${estUseResp.data.month_kwh.previousSum} kWh)")
+            logWriter("MonthEst: ${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp.data.month_tariff.estimate}")
 		}
         
 	def params = [
@@ -411,6 +471,8 @@ def getUsageData() {
         contentType: 'application/json'
     	]
 	httpGet(params, estUseClosure)
+    }
+    catch (e) { log.error "getUsageData Exception: ${e}" }
 }
 
 // Get tariff energy metrics
@@ -421,12 +483,12 @@ def getTariffData() {
         		def tariffRate = tariffResp.data.tariff.plan.plan.planDetail.rate.toString().replaceAll("\\[|\\{|\\]|\\}", "")
                 
             	//Sends extended metrics to tiles
-            	state.tariffRate = "Tariff Rate: ${tariffRate}"
+            	state.tariffRate = "${tariffRate}¢"
             	
             	//Show Debug logging if enabled in preferences
             	logWriter(" ")
             	logWriter("-------------------TARIFF RATE DATA-------------------")
-                logWriter("Tariff Rate: ${tariffRate}")
+                logWriter("${state.tariffRate}")
          	}
                 
 		def params = [
@@ -444,6 +506,7 @@ def getTariffData() {
 ****  Json Returned: {"cid":"PWER","data":[{"1440023704000":0}],"sid":"123456","units":"kWm","age":142156},{"cid":"PWER_GAC","data":[{"1440165858000":1343}],"sid":"123456","units":null,"age":2}
 */
 def getReadingData() {
+	try {
     def today = new Date()
     def tf = new SimpleDateFormat("M/d/yyyy - h:mm:ss a")
     	tf.setTimeZone(TimeZone.getTimeZone("America/New_York"))
@@ -496,7 +559,7 @@ def getReadingData() {
             
         state.energyReading = cidReading.toInteger() / 1000
         //state.powerVal = cidReading
-        state.readingUpdated = "Last Updated: ${readingUpdated}"
+        state.readingUpdated = "Last Updated:\n${readingUpdated}"
             
 		//Show Debug logging if enabled in preferences
         logWriter(" ")	
@@ -519,6 +582,8 @@ def getReadingData() {
         contentType: "json"
     	]
 	httpGet(summaryParams, summaryClosure)
+    }
+    catch (e) { log.error "getReadingData Exception: ${e}" }
 }
 
 // Returns Hub Device Status Info 
@@ -588,7 +653,20 @@ private def textVersion() 	{ def text = "Version: ${appVersion()}" }
 private def textModified() 	{ def text = "Updated: ${appVerDate()}" }
 private def textAuthor() 	{ def text = "${appAuthor()}" }
 private def textNamespace() { def text = "${appNamespace()}" }
-private def textVerInfo() { def text = "${appVerInfo()}" }
+private def textVerInfo() 	{ def text = "${appVerInfo()}" }
 private def textCopyright() { def text = "Copyright© 2015 - Anthony S." }
-private def textDesc() { def text = "${appDesc()}" }
-
+private def textDesc() 		{ def text = "${appDesc()}" }
+private def textHelp() 		{ def text = "You can enable 'Debug Logging' if you are encountering issues." }
+private def textLicense() 	{ def text =
+		"Licensed under the Apache License, Version 2.0 (the 'License'); "+
+		"you may not use this file except in compliance with the License. "+
+		"You may obtain a copy of the License at"+
+		"\n\n"+
+		"    http://www.apache.org/licenses/LICENSE-2.0"+
+		"\n\n"+
+		"Unless required by applicable law or agreed to in writing, software "+
+		"distributed under the License is distributed on an 'AS IS' BASIS, "+
+		"WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. "+
+		"See the License for the specific language governing permissions and "+
+		"limitations under the License."
+}
