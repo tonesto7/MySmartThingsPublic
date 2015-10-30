@@ -102,7 +102,7 @@ def mainPage() {
             	href "prefsPage", title: "App and Locale Preferences", description: "Tap to configure.\n\nDebug Logging: ${state.showLogging.toString().capitalize()}\nNotifications: ${notif.toString().capitalize()}", image: "https://dl.dropboxusercontent.com/s/2s3jvtlfrctdcsc/settings_icon.png" 
             }
 			
-            section(" ") {
+            section(" ", mobileOnly: true) {
             	//App Details and Licensing Page
             	href "infoPage", title:"App Details and Licensing", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/y2lcy6iho0dpsp5/info_icon.png"
             }
