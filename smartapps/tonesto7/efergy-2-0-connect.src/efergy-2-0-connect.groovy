@@ -28,21 +28,24 @@ def appAuthor() { "Anthony S." }
 //So is this...
 def appNamespace() { "tonesto7" }
 //This one too...
-def appVersion() { "2.5.0" }
+def appVersion() { "2.5.1" }
 //Definitely this one too!
-def appVerDate() { "10-26-2015" }
+def appVerDate() { "11-2-2015" }
 //Application Description
 def appDesc() { "This app will connect to the Efergy Servers and generate a token as well as create the energy device automatically for you.  After that it will manage and update the device info about every 30 seconds" }
 //Adds version changes to info page
 def appVerInfo() {	
-	"v2.5 (Oct 26th, 2015)\n" +
+	"v2.5.1 (Nov 2nd, 2015)\n" +
+ 	"Fixed Duplicate scheduling issue\n" +  
+ 	"\n"+
+	"v2.5.0 (Oct 26th, 2015)\n" +
  	"Restructured the main page layout of the smart app and icons\n" +  
  	"Added Currency Units (If TimeZone is America the Unit is automatically '\$'... If your not in America you can change it in preferences)\n" + 
  	"\n"+
-    "v2.4 (Oct 19th, 2015)\n" +
+    "v2.4.0 (Oct 19th, 2015)\n" +
  	"Updated the code to handle bad authentication events\n" +
     "\n" +
- 	"v2.3 (Oct 1st, 2015)\n" +
+ 	"v2.3.0 (Oct 1st, 2015)\n" +
 	"Added the new single instance only platform feature. to prevent multiple installs of this service manager\n" +
     "--------------------------------------------------------------"
 }
@@ -274,7 +277,7 @@ def updateDeviceData() {
 // refresh command
 def refresh() {
 	if (state.efergyAuthToken) {
-		checkSchedule()
+		if (state.timeSinceRfsh > 360 || !state.timeSinceRfsh) { checkSchedule() }
     	logWriter("")	
 		log.debug "Refreshing Efergy Energy data from engage.efergy.com"
     
@@ -299,14 +302,19 @@ private addSchedule() {
 }
 
 private checkSchedule() {
-	def timeSince
-   	if (state.hubTsHuman) {
-    	timeSince = GetTimeDiffSeconds(state.hubTsHuman)
-    }
-    if (!timeSince || timeSince > 360) {
+	logWriter("Check Schedule has ran!")	
+    def timeSince = state.timeSinceRfsh ? state.timeSinceRfsh : null 
+    if (timeSince > 360) {
     	log.warn "It has been more that 5 minutes since last refresh"
         log.debug "Scheduling Issue found... Re-initializing schedule... Data should resume refreshing in 30 seconds" 
         addSchedule()
+        return
+    }
+    else if (!timeSince) {
+    	log.warn "Hub TimeStamp Value was null..."
+        log.debug "Re-initializing schedule... Data should resume refreshing in 30 seconds" 
+        addSchedule()
+        return
     }
 }
 
@@ -378,7 +386,7 @@ def checkForNotify() {
     logWriter("After X Min: " + state.notifyAfterMin)
     def delayVal = state.notifyDelayMin * 60
     def notifyVal = state.notifyAfterMin * 60
-    def timeSince = GetTimeDiffSeconds(state.hubTsHuman)
+    def timeSince = GetLastRefrshSec()
     
     if ((state.lastNotifySeconds == null && state.lastNotified == null) || (state.lastNotifySeconds == null || state.lastNotified == null)) {
     	state.lastNotifySeconds = 0
@@ -420,6 +428,11 @@ def NotifyOnNoUpdate(Integer timeSince) {
             sendSms(phone, message)
         }
     }
+}
+
+def GetLastRefrshSec() {
+	state.timeSinceRfsh = GetTimeDiffSeconds(state.hubTsHuman)
+    logWriter("TimeSinceRefresh: ${state.timeSinceRfsh}")
 }
 
 //Returns time difference is seconds 
