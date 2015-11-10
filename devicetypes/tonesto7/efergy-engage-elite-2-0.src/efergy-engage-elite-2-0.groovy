@@ -13,6 +13,8 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
+*	v2.2 (October 26th, 2015)
+*	- Added Streamlined Tiles.  Added Tariff Rate Tile
 *	v2.1 (Sept 18th, 2015)
 *	- Remove debug logging from preferences.  It's now controlled from the smartapp
 *
@@ -35,8 +37,8 @@ import java.text.SimpleDateFormat
 import groovy.time.TimeCategory 
 import groovy.time.TimeDuration
 
-def devTypeVer() {"2.1"}
-def versionDate() {"9-20-2015"}
+def devTypeVer() {"2.2"}
+def versionDate() {"10-26-2015"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
@@ -49,12 +51,15 @@ metadata {
         command "refresh"
         command "updateUsageData", ["string", "string", "string"]
 		command "updateReadingData", ["string", "string"]
-        command "updateHubData", ["string", "string"]
+        command "updateTariffData", ["string"]
+        command "updateHubData", ["string", "string", "string"]
         command "isDebugLogging", ["string"]
+        //command "isShowHubTiles", ["string"]
+        //command "isShowEstCostTiles", ["string"]
 	}
     
 	tiles (scale: 2) {
-    	multiAttributeTile(name:"power", type:"generic", width:6, height:4) {
+        multiAttributeTile(name:"power", type:"generic", width:6, height:4) {
     		tileAttribute("device.power", key: "PRIMARY_CONTROL") {
       			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/vfxkm0hp6jsl56m/power_icon_bk.png", 
                 foregroundColor: "#000000",
@@ -65,23 +70,23 @@ metadata {
 					[value: 4000, color: "#fb1b42"] //Bright Red
 				]
     		}
-			tileAttribute("device.todayUsage", key: "SECONDARY_CONTROL") {
-      			attributeState "default", label: '${currentValue}'
-            }
+        	tileAttribute("device.todayUsage", key: "SECONDARY_CONTROL") {
+      				attributeState "default", label: '${currentValue}'
+           	}
   		}
         
-        valueTile("monthUsage", "device.monthUsage", width: 4, height: 2, decoration: "flat", wordWrap: true) {
+        valueTile("monthUsage", "device.monthUsage", width: 4, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: '${currentValue}'
-		}    
+		}
         
-        valueTile("monthEst", "device.monthEst", width: 4, height: 2, decoration: "flat", wordWrap: true) {
+        valueTile("monthEst", "device.monthEst", width: 4, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: '${currentValue}'
-		}   
+		}
         
-        valueTile("readingUpdated", "device.readingUpdated", width: 6, height: 2, decoration: "flat", wordWrap: true) {
-			state "default", label:'${currentValue}'
-	    }
-        
+        valueTile("tariffRate", "device.tariffRate", width: 2, height: 1, decoration: "flat") {
+			state "default", label: 'Tariff Rate:\n${currentValue}/kWH'
+		}
+		
         valueTile("hubStatus", "device.hubStatus", width: 2, height: 1, decoration: "flat") {
 			state "default", label: 'Hub Status:\n${currentValue}'
 		}
@@ -90,12 +95,16 @@ metadata {
 			state "default", label: 'Hub Version:\n${currentValue}'
 		}
         
+        valueTile("readingUpdated", "device.readingUpdated", width: 6, height: 2, decoration: "flat", wordWrap: true) {
+			state "default", label:'${currentValue}'
+	    }
+        
         standardTile("refresh", "command.refresh", inactiveLabel: false, width: 2, height: 2, decoration: "flat") {
-		state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
+			state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
 		}
         
         main (["power"])
-        details(["power", "monthUsage", "monthEst", "readingUpdated", "refresh", "hubStatus", "hubVersion"])
+        details(["power", "monthUsage", "monthEst", "refresh", "tariffRate", "hubStatus", "hubVersion", "readingUpdated"])
 	}
 }
 
@@ -146,21 +155,41 @@ def updateReadingData(String power, String readingUpdated) {
     sendEvent(name: "readingUpdated", value: readingUpdated, display: false, displayed: false)
 }
 
+def updateTariffData(String tariffVal) {
+    logWriter("--------------UPDATE TARIFF DATA-------------")
+    logWriter("tariffVal: " + tariffVal)
+    logWriter("")    
+    //Updates Device Readings to tiles
+    sendEvent(name: "tariffRate", value: tariffVal, display: false, displayed: false)
+}
+
 // Get Status 
-def updateHubData(String hubVersion, String hubStatus) {
+def updateHubData(String hubVersion, String hubStatus, String hubName) {
     logWriter("--------------UPDATE HUB DATA-------------")
     logWriter("hubVersion: " + hubVersion)
     logWriter("hubStatus: " + hubStatus)
+    logWriter("hubName: " + hubName)
     logWriter("")
 	//Updates HubVersion and HubStatus Tiles 
 	sendEvent(name: "hubVersion", value: hubVersion, display: false, displayed: false)
     sendEvent(name: "hubStatus", value: hubStatus, display: false, displayed: false)
+    sendEvent(name: "hubName", value: hubName, display: false, displayed: false)
 }    
 
 def isDebugLogging(String showLogging) {
 	state.showLogging = showLogging.toBoolean()
     logWriter("DebugLogging: ${state.showLogging}") 
 }
+
+def isShowHubTiles(String showHubTiles) {
+	state.showHubTiles = showHubTiles.toBoolean()
+    logWriter("ShowHubTiles: ${state.showHubTiles}") 
+}
+def isShowEstCostTiles(String showEstCostTiles) {
+	state.showEstCostTiles = showEstCostTiles.toBoolean()
+    logWriter("ShowEstCostTiles: ${state.showEstCostTiles}") 
+}
+
 
 //Log Writer that all logs are channel through *It will only output these if Debug Logging is enabled under preferences
 private def logWriter(value) {
