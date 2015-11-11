@@ -28,13 +28,17 @@ def appAuthor() { "Anthony S." }
 //So is this...
 def appNamespace() { "tonesto7" }
 //This one too...
-def appVersion() { "2.5.1" }
+def appVersion() { "2.6.0" }
 //Definitely this one too!
-def appVerDate() { "11-2-2015" }
+def appVerDate() { "11-11-2015" }
 //Application Description
 def appDesc() { "This app will connect to the Efergy Servers and generate a token as well as create the energy device automatically for you.  After that it will manage and update the device info about every 30 seconds" }
 //Adds version changes to info page
 def appVerInfo() {	
+	"v2.6.0 (Nov 11th, 2015)\n" +
+ 	"Optimized Scheduling and Added AppTouch Button to quickly refresh device from SmartApp List"+
+    "Fixed Random Errors received on reading data\n" +  
+ 	"\n"+
 	"v2.5.1 (Nov 2nd, 2015)\n" +
  	"Fixed Duplicate scheduling issue\n" +  
  	"\n"+
@@ -228,9 +232,14 @@ def initialize() {
     evtSubscribe()
 }
 
+def onAppTouch(event) {
+	refresh()
+}
+
 //subscribes to the various location events and uses them to refresh the data if the scheduler gets stuck
 private evtSubscribe() {
-	subscribe(location, "sunrise", refresh)
+	subscribe(app, onAppTouch)
+    subscribe(location, "sunrise", refresh)
 	subscribe(location, "sunset", refresh)
 	subscribe(location, "mode", refresh)
 	subscribe(location, "sunriseTime", refresh)
@@ -276,6 +285,7 @@ def updateDeviceData() {
 
 // refresh command
 def refresh() {
+	GetLastRefrshSec()
 	if (state.efergyAuthToken) {
 		if (state.timeSinceRfsh > 360 || !state.timeSinceRfsh) { checkSchedule() }
     	logWriter("")	
@@ -297,15 +307,19 @@ def refresh() {
 
 //Create Refresh schedule to refresh device data (Triggers roughly every 30 seconds)
 private addSchedule() {
-    schedule("0 0/5 * 1/1 * ? *", "checkSchedule")
-    schedule("1/1 * * * * ?", "refresh")
+    schedule("1/1 * * * * ?", "refresh") //Runs every 30 seconds to Refresh Data
+    schedule("0 0/1 * 1/1 * ? *", "GetLastRefrshSec") //Runs every 1 minute to make sure that data is accurate
+    runEvery5Minutes("checkSchedule")
+    runEvery30Minutes("checkSchedule")
 }
 
-private checkSchedule() {
+def checkSchedule() {
 	logWriter("Check Schedule has ran!")	
+    GetLastRefrshSec()
     def timeSince = state.timeSinceRfsh ? state.timeSinceRfsh : null 
+    log.debug "checkSchedule TimeSince: ${timeSince}"
     if (timeSince > 360) {
-    	log.warn "It has been more that 5 minutes since last refresh"
+    	log.warn "It has been more than 5 minutes since last refresh!!!"
         log.debug "Scheduling Issue found... Re-initializing schedule... Data should resume refreshing in 30 seconds" 
         addSchedule()
         return
@@ -432,17 +446,23 @@ def NotifyOnNoUpdate(Integer timeSince) {
 
 def GetLastRefrshSec() {
 	state.timeSinceRfsh = GetTimeDiffSeconds(state.hubTsHuman)
-    logWriter("TimeSinceRefresh: ${state.timeSinceRfsh}")
+    logWriter("TimeSinceRefresh: ${state.timeSinceRfsh} seconds")
 }
 
 //Returns time difference is seconds 
 def GetTimeDiffSeconds(String startDate) {
-	def now = new Date()
-    def startDt = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy").parse(startDate)
-    def diff = now.getTime() - startDt.getTime()  
-    def diffSeconds = (int) (long) diff / 1000
-    //def diffMinutes = (int) (long) diff / 60000
-    return diffSeconds
+	try {
+		def now = new Date()
+    	def startDt = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy").parse(startDate)
+    	def diff = now.getTime() - startDt.getTime()  
+    	def diffSeconds = (int) (long) diff / 1000
+    	//def diffMinutes = (int) (long) diff / 60000
+    	return diffSeconds
+    }
+    catch (e) {
+    	log.debug "Exception in GetTimeDiffSeconds: ${e}"
+        return 10000
+    }
 }
 
 //Matches hubType to a full name
@@ -520,18 +540,17 @@ def getTariffData() {
 */
 def getReadingData() {
 	try {
-    def today = new Date()
-    def tf = new SimpleDateFormat("M/d/yyyy - h:mm:ss a")
-    	tf.setTimeZone(TimeZone.getTimeZone("America/New_York"))
-    def cidVal = "" 
-	def cidData = [{}]
-    def cidUnit = ""
-    def timeVal
-	def cidReading
-    def cidReadingAge
-    def readingUpdated
-    def summaryClosure = { 
-        summaryResp -> 
+    	def today = new Date()
+    	def tf = new SimpleDateFormat("M/d/yyyy - h:mm:ss a")
+    		tf.setTimeZone(TimeZone.getTimeZone("America/New_York"))
+    	def cidVal = "" 
+		def cidData = [{}]
+    	def cidUnit = ""
+    	def timeVal
+		def cidReading
+    	def cidReadingAge
+    	def readingUpdated
+    	def summaryClosure = { summaryResp -> 
         	def respData = summaryResp.data.text
             
             //Converts http response data to list
@@ -539,64 +558,69 @@ def getReadingData() {
 			
             //Search through the list for age to determine Cid Type
 			for (rec in cidList) { 
-    			if ((((rec.age >= 0) && (rec.age <= 10)) || (rec.age == 0) ) ) { 
-                	cidVal = rec.cid 
+    			if (rec.age || rec.age == 0) { 
+               		cidVal = rec.cid 
         			cidData = rec.data
-                	cidReadingAge = rec.age
-                	if(rec.units != null)
-                    	cidUnit = rec.units
+               		cidReadingAge = rec.age
+               		if(rec.units != null)
+                   		cidUnit = rec.units
         			break 
      			}
 			}
             
- 		//Convert data: values to individual strings
-		for (item in cidData[0]) {
-     		timeVal =  item.key
-    		cidReading = item.value
-		}
+ 			//Convert data: values to individual strings
+			for (item in cidData[0]) {
+     			timeVal =  item.key
+    			cidReading = item.value
+			}
             
-        //Converts timeVal string to long integer
-        def longTimeVal = timeVal.toLong()
+        	//Converts timeVal string to long integer
+        	def longTimeVal = timeVal?.toLong()
 
-		//Save Cid Type to device state
-		state.cidType = cidVal
+			//Save Cid Type to device state
+			state.cidType = cidVal
             
-        //Save Cid Unit to device state
-        state.cidUnit = cidUnit
+        	//Save Cid Unit to device state
+        	state.cidUnit = cidUnit
             
-        //Save last Cid reading value to device state
-        state.powerReading = cidReading
+        	//Formats epoch time to Human DateTime Format
+        	if (longTimeVal) {readingUpdated = "${tf.format(longTimeVal)}" }
+
+			//Save last Cid reading value to device state
+        	if (cidReading) {
+        		state.powerReading = cidReading	
+            	state.energyReading = cidReading.toInteger() * 24 / 1000 
+        	}
+
+			//state.powerVal = cidReading
+        	state.readingUpdated = "Last Updated:\n${readingUpdated}"
+            state.readingDt = readingUpdated
             
-        //Formats epoch time to Human DateTime Format
-        readingUpdated = "${tf.format(longTimeVal)}"
+			//Show Debug logging if enabled in preferences
+        	logWriter(" ")	
+        	logWriter("-------------------USAGE READING DATA-------------------")
+        	//log.debug("HTTP Status Response: " + respData)	/*<------Uncomment this line to log the Http response */
+			logWriter("Cid Type: " + state.cidType)
+        	logWriter("Cid Unit: " + cidUnit)
+        	logWriter("Timestamp: " + timeVal)
+        	logWriter("reading: " + cidReading)
+        	logWriter("Last Updated: " + readingUpdated)
+        	logWriter("Reading Age: " + cidReadingAge)
+        	logWriter("Current Month: ${state.monthName}")
+        	logWriter("Day of Week: ${state.dayOfWeek}")
+    	}
+        
+		def summaryParams = [
+    		uri: "https://engage.efergy.com",
+    		path: "/mobile_proxy/getCurrentValuesSummary",
+        	query: ["token": state.efergyAuthToken],
+        	contentType: "json"]
             
-        state.energyReading = cidReading.toInteger() / 1000
-        //state.powerVal = cidReading
-        state.readingUpdated = "Last Updated:\n${readingUpdated}"
-            
-		//Show Debug logging if enabled in preferences
-        logWriter(" ")	
-        logWriter("-------------------USAGE READING DATA-------------------")
-        //logWriter("HTTP Status Response: " + respData)	/*<------Uncomment this line to log the Http response */
-		logWriter("Cid Type: " + state.cidType)
-        logWriter("Cid Unit: " + cidUnit)
-        logWriter("Timestamp: " + timeVal)
-        logWriter("reading: " + cidReading)
-        logWriter("Last Updated: " + readingUpdated)
-        logWriter("Reading Age: " + cidReadingAge)
-        logWriter("Current Month: ${state.monthName}")
-        logWriter("Day of Week: ${state.dayOfWeek}")
-            
+		httpGet(summaryParams, summaryClosure)
     }
-	def summaryParams = [
-    	uri: "https://engage.efergy.com",
-    	path: "/mobile_proxy/getCurrentValuesSummary",
-        query: ["token": state.efergyAuthToken],
-        contentType: "json"
-    	]
-	httpGet(summaryParams, summaryClosure)
+    catch (e) { 
+    	log.error "getReadingData Exception: ${e}" 
     }
-    catch (e) { log.error "getReadingData Exception: ${e}" }
 }
 
 // Returns Hub Device Status Info 
