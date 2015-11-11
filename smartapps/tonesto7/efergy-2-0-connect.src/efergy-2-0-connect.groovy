@@ -317,7 +317,6 @@ def checkSchedule() {
 	logWriter("Check Schedule has ran!")	
     GetLastRefrshSec()
     def timeSince = state.timeSinceRfsh ? state.timeSinceRfsh : null 
-    log.debug "checkSchedule TimeSince: ${timeSince}"
     if (timeSince > 360) {
     	log.warn "It has been more than 5 minutes since last refresh!!!"
         log.debug "Scheduling Issue found... Re-initializing schedule... Data should resume refreshing in 30 seconds" 
