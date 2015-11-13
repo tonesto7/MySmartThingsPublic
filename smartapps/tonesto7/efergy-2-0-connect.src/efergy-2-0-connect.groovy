@@ -254,10 +254,10 @@ private addDevice() {
   	if(!d) {
     	d = addChildDevice("tonesto7", "Efergy Engage Elite 2.0", dni, null, [name:"Efergy Engage Elite", label: "Efergy Engage Elite", completedSetup: true])
     	d.take()
-    	logWriter("created ${d.displayName} with id $dni")
+    	logWriter("Successfully Created Child Device: ${d.displayName} (${dni})")
   	} 
     else {
-    logWriter("Device already created")
+    	logWriter("Device already created")
   	}
 }
 
@@ -265,6 +265,7 @@ private removeChildDevices(delete) {
 	try {
     	delete.each {
         	deleteChildDevice(it.deviceNetworkId)
+            log.info "Successfully Removed Child Device: ${it.displayName} (${it.deviceNetworkId})"
     		}
    		}
     catch (e) { logWriter("There was an error (${e}) when trying to delete the child device") }
@@ -289,7 +290,7 @@ def refresh() {
 	if (state.efergyAuthToken) {
 		if (state.timeSinceRfsh > 360 || !state.timeSinceRfsh) { checkSchedule() }
     	logWriter("")	
-		log.debug "Refreshing Efergy Energy data from engage.efergy.com"
+		log.info "Refreshing Efergy Energy data from engage.efergy.com"
     
     	getDayMonth()
     	getReadingData()
