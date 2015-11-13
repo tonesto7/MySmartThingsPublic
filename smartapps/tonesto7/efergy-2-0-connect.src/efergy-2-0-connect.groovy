@@ -332,7 +332,7 @@ def checkSchedule() {
 }
 
 // Get Efergy Authentication Token
-def getAuthToken() {
+private def getAuthToken() {
 	def closure = { 
     	resp -> 
         log.debug("Auth Response: " + resp.data)  
@@ -395,8 +395,8 @@ def getCurrency() {
 def checkForNotify() {
     if(!state.notifyDelayMin) { state.notifyDelayMin = 50 }
     if(!state.notifyAfterMin) { state.notifyAfterMin = 60 }
-    logWriter("Delay X Min: " + state.notifyDelayMin)
-    logWriter("After X Min: " + state.notifyAfterMin)
+    //logWriter("Delay X Min: " + state.notifyDelayMin)
+    //logWriter("After X Min: " + state.notifyAfterMin)
     def delayVal = state.notifyDelayMin * 60
     def notifyVal = state.notifyAfterMin * 60
     def timeSince = GetLastRefrshSec()
@@ -464,6 +464,10 @@ def GetTimeDiffSeconds(String startDate) {
     }
 }
 
+def todaysUseCalc() {
+	
+}
+
 //Matches hubType to a full name
 def getHubName(String hubType) {
 	def hubName = ""
@@ -478,7 +482,7 @@ def getHubName(String hubType) {
 }
 
 // Get extended energy metrics
-def getUsageData() {
+private def getUsageData() {
 	try {
 	def estUseClosure = { 
         estUseResp -> 
@@ -508,7 +512,7 @@ def getUsageData() {
 }
 
 // Get tariff energy metrics
-def getTariffData() {
+private def getTariffData() {
 	try {
 		def tariffClosure = { 
         	tariffResp -> 
@@ -537,7 +541,7 @@ def getTariffData() {
 /* Get the sensor reading
 ****  Json Returned: {"cid":"PWER","data":[{"1440023704000":0}],"sid":"123456","units":"kWm","age":142156},{"cid":"PWER_GAC","data":[{"1440165858000":1343}],"sid":"123456","units":null,"age":2}
 */
-def getReadingData() {
+private def getReadingData() {
 	try {
     	def today = new Date()
     	def tf = new SimpleDateFormat("M/d/yyyy - h:mm:ss a")
@@ -588,7 +592,7 @@ def getReadingData() {
 			//Save last Cid reading value to device state
         	if (cidReading) {
         		state.powerReading = cidReading	
-            	state.energyReading = cidReading.toInteger() * 24 / 1000 
+            	state.energyReading = cidReading.toInteger() / 1000 
         	}
 
 			//state.powerVal = cidReading
@@ -616,6 +620,7 @@ def getReadingData() {
         	contentType: "json"]
             
 		httpGet(summaryParams, summaryClosure)
+        todaysUseCalc()
     }
     catch (e) { 
     	log.error "getReadingData Exception: ${e}" 
@@ -623,7 +628,7 @@ def getReadingData() {
 }
 
 // Returns Hub Device Status Info 
-def getHubData() {
+private def getHubData() {
 	def hubId = ""
     def hubMacAddr = ""
     def hubStatus = ""
