@@ -121,14 +121,14 @@ def parse(String description) {
 	
 // refresh command
 def refresh() {
-	log.debug "Refresh command received..."
+	log.info "Refresh command received..."
     parent.refresh()
 }
     
 // Poll command
 def poll() {
-	log.debug "Poll command received..."
-    refresh()
+	log.info "Poll command received..."
+    parent.refresh()
 }
 
 // Get extended energy metrics
@@ -145,12 +145,12 @@ def updateUsageData(String todayUsage, String monthUsage, String monthEst) {
  
 def updateReadingData(String power, String readingUpdated) {
     logWriter("--------------UPDATE READING DATA-------------")
-    logWriter("energy: " + power.toInteger() / 1000)
+    logWriter("energy: " + power.toInteger() * 24 / 1000)
     logWriter("power: " + power)
     logWriter("readingUpdated: " + readingUpdated)
     logWriter("")    
     //Updates Device Readings to tiles
-    sendEvent(name: "energy", unit: "kWh", value: power.toInteger() / 1000, display: false, displayed: false)
+    sendEvent(name: "energy", unit: "kWh", value: power.toInteger() * 24 / 1000)
     sendEvent(name: "power", unit: "W", value: power)
     sendEvent(name: "readingUpdated", value: readingUpdated, display: false, displayed: false)
 }
