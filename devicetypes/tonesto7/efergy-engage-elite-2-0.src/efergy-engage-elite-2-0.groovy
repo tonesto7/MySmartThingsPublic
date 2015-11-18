@@ -20,16 +20,6 @@
 *
 *	v2.0 (Sept 15th, 2015)
 *	- Device is now installed and updated via the Efergy 2.0 (Connect) SmartApp
-*
-*  v1.1 (Sept 11th, 2015)
-*	- Trying to update the tile view to reflect the new multiAttributeTile features
-*  	- Add Month Name to tiles.
-*  
-*  v1.1 (August 23rd, 2015)
-*  	- Reworked and optimized most of http code to handle the different clamp types
-*   - Added Refresh button to manually update the info as you wish
-*  	- Added preference setting to enable to debug logging if you are having issues
-*	- Uploading to GitHub
 *  ---------------------------
 */
 import groovy.json.JsonSlurper
