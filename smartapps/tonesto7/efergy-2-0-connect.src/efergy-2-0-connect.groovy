@@ -362,10 +362,8 @@ private def getAuthToken() {
 def getDayMonth() {
 	def sdf = new SimpleDateFormat("EE MMM dd HH:mm:ss yyyy")
     def now = new Date()
-    def month
-    def day
-    month = new SimpleDateFormat("MMMM").format(now)
-    day = new SimpleDateFormat("EEEE").format(now)
+    def month = new SimpleDateFormat("MMMM").format(now)
+    def day = new SimpleDateFormat("EEEE").format(now)
    
     if (month != null && day != null) {
     	state.monthName = month
