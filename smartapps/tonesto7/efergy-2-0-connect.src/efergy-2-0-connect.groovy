@@ -486,17 +486,17 @@ private def getUsageData() {
 	def estUseClosure = { 
         estUseResp -> 
             //Sends extended metrics to tiles
-            state.todayUsage = "Today\'s Usage: ${state.currencySym}${estUseResp.data.day_tariff.estimate} (${estUseResp.data.day_kwh.estimate} kWh)"
-            state.monthUsage = "${state.monthName} Usage ${state.currencySym}${estUseResp.data.month_tariff.previousSum} (${estUseResp.data.month_kwh.previousSum} kWh)"
-            state.monthEst = "${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp.data.month_tariff.estimate}"
+            state.todayUsage = "Today\'s Usage: ${state.currencySym}${estUseResp?.data?.day_tariff?.estimate} (${estUseResp?.data?.day_kwh.estimate} kWh)"
+            state.monthUsage = "${state.monthName} Usage ${state.currencySym}${estUseResp?.data?.month_tariff?.previousSum} (${estUseResp?.data?.month_kwh?.previousSum} kWh)"
+            state.monthEst = "${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp?.data?.month_tariff?.estimate}"
             
             //Show Debug logging if enabled in preferences
             logWriter(" ")
             logWriter("-------------------ESTIMATED USAGE DATA-------------------")
             //logWriter("Http Usage Response: $estUseResp.data")
-            logWriter("TodayUsage: Today\'s Usage: ${state.currencySym}${estUseResp.data.day_tariff.estimate} (${estUseResp.data.day_kwh.estimate} kWh)")
-            logWriter("MonthUsage: ${state.monthName} Usage ${state.currencySym}${estUseResp.data.month_tariff.previousSum} (${estUseResp.data.month_kwh.previousSum} kWh)")
-            logWriter("MonthEst: ${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp.data.month_tariff.estimate}")
+            logWriter("TodayUsage: Today\'s Usage: ${state.currencySym}${estUseResp?.data?.day_tariff?.estimate} (${estUseResp?.data?.day_kwh?.estimate} kWh)")
+            logWriter("MonthUsage: ${state.monthName} Usage ${state.currencySym}${estUseResp?.data?.month_tariff?.previousSum} (${estUseResp?.data.month_kwh?.previousSum} kWh)")
+            logWriter("MonthEst: ${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp?.data?.month_tariff?.estimate}")
 		}
         
 	def params = [
@@ -515,7 +515,7 @@ private def getTariffData() {
 	try {
 		def tariffClosure = { 
         	tariffResp -> 
-        		def tariffRate = tariffResp.data.tariff.plan.plan.planDetail.rate.toString().replaceAll("\\[|\\{|\\]|\\}", "")
+        		def tariffRate = tariffResp?.data?.tariff?.plan?.plan?.planDetail?.rate.toString().replaceAll("\\[|\\{|\\]|\\}", "")
                 
             	//Sends extended metrics to tiles
             	state.tariffRate = "${tariffRate}¢"
@@ -553,27 +553,27 @@ private def getReadingData() {
     	def cidReadingAge
     	def readingUpdated
     	def summaryClosure = { summaryResp -> 
-        	def respData = summaryResp.data.text
+        	def respData = summaryResp?.data.text
             
             //Converts http response data to list
 			def cidList = new JsonSlurper().parseText(respData)
 			
             //Search through the list for age to determine Cid Type
 			for (rec in cidList) { 
-    			if (rec.age || rec.age == 0) { 
-               		cidVal = rec.cid 
-        			cidData = rec.data
-               		cidReadingAge = rec.age
-               		if(rec.units != null)
-                   		cidUnit = rec.units
+    			if (rec.age || rec?.age == 0) { 
+               		cidVal = rec?.cid 
+        			cidData = rec?.data
+               		cidReadingAge = rec?.age
+               		if(rec?.units != null)
+                   		cidUnit = rec?.units
         			break 
      			}
 			}
             
  			//Convert data: values to individual strings
 			for (item in cidData[0]) {
-     			timeVal =  item.key
-    			cidReading = item.value
+     			timeVal =  item?.key
+    			cidReading = item?.value
 			}
             
         	//Converts timeVal string to long integer
@@ -636,16 +636,16 @@ private def getHubData() {
     def hubVersion = ""
     def statusList
     def getStatusClosure = { statusResp ->  
-        	def respData = statusResp.data.text
+        	def respData = statusResp?.data.text
             //Converts http response data to list
 			statusList = new JsonSlurper().parseText(respData)
 			
-           	hubId = statusList.hid
-            hubMacAddr = statusList.listOfMacs.mac
-    		hubStatus = statusList.listOfMacs.status
-    		hubTsHuman = statusList.listOfMacs.tsHuman
-    		hubType = statusList.listOfMacs.type
-    		hubVersion = statusList.listOfMacs.version
+           	hubId = statusList?.hid
+            hubMacAddr = statusList?.listOfMacs.mac
+    		hubStatus = statusList?.listOfMacs.status
+    		hubTsHuman = statusList?.listOfMacs.tsHuman
+    		hubType = statusList?.listOfMacs.type
+    		hubVersion = statusList?.listOfMacs.version
             
             //Save info to device state store
             state.hubId = hubId
