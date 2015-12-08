@@ -21,38 +21,17 @@ definition(
 	iconX3Url: "https://dl.dropboxusercontent.com/s/56740lxra2qkqix/efergy_512.png",
     singleInstance: true)
 
-//Change This to rename the Defaul App Name
+//Change This to rename the Default App Name
 def appName() { "Efergy 2.0 (Connect)" }
 //Pretty Self Explanatory
 def appAuthor() { "Anthony S." }
 //So is this...
 def appNamespace() { "tonesto7" }
 //This one too...
-def appVersion() { "2.6.0" }
+def appVersion() { "2.6.1" }
 //Definitely this one too!
-def appVerDate() { "11-11-2015" }
-//Application Description
-def appDesc() { "This app will connect to the Efergy Servers and generate a token as well as create the energy device automatically for you.  After that it will manage and update the device info about every 30 seconds" }
-//Adds version changes to info page
-def appVerInfo() {	
-	"v2.6.0 (Nov 11th, 2015)\n" +
- 	"Optimized Scheduling and Added AppTouch Button to quickly refresh device from SmartApp List"+
-    "Fixed Random Errors received on reading data\n" +  
- 	"\n"+
-	"v2.5.1 (Nov 2nd, 2015)\n" +
- 	"Fixed Duplicate scheduling issue\n" +  
- 	"\n"+
-	"v2.5.0 (Oct 26th, 2015)\n" +
- 	"Restructured the main page layout of the smart app and icons\n" +  
- 	"Added Currency Units (If TimeZone is America the Unit is automatically '\$'... If your not in America you can change it in preferences)\n" + 
- 	"\n"+
-    "v2.4.0 (Oct 19th, 2015)\n" +
- 	"Updated the code to handle bad authentication events\n" +
-    "\n" +
- 	"v2.3.0 (Oct 1st, 2015)\n" +
-	"Added the new single instance only platform feature. to prevent multiple installs of this service manager\n" +
-    "--------------------------------------------------------------"
-}
+def appVerDate() { "12-8-2015" }
+
 
 preferences {
 	page(name: "startPage")
@@ -91,27 +70,25 @@ def loginPage() {
 def mainPage() {
 	if (!state.efergyAuthToken) { getAuthToken() } 
     if (!state.currencySym) { state.currencySym = "\$" }
+    getCurrency()
     def notif = recipients ? true : false
     if (state.loginStatus != "ok") { return loginPage() }
     def showUninstall = state.appInstalled
 
 	dynamicPage(name: "mainPage", uninstall: showUninstall, install: true) {
-        section("App and Locale Info:") {
-        	paragraph "Name: ${textAppName()}\n${textVersion()}\n${textModified()}\nTimeZone: ${location.timeZone.ID}\nCurrency: ${getCurrency()}", 
-            	image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
-    	}
         if (state.efergyAuthToken) {
             section("Efergy Hub:") { 
         		href "hubInfoPage", title:"View Hub Info", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/amhupeknid6osmu/St_hub.png"
         	}
 			
             section("Preferences:") {
-            	href "prefsPage", title: "App and Locale Preferences", description: "Tap to configure.\n\nDebug Logging: ${state.showLogging.toString().capitalize()}\nNotifications: ${notif.toString().capitalize()}", image: "https://dl.dropboxusercontent.com/s/2s3jvtlfrctdcsc/settings_icon.png" 
+            	href "prefsPage", title: "App Preferences", description: "Tap to configure.\n\nDebug Logging: ${state.showLogging.toString().capitalize()}\nNotifications: ${notif.toString().capitalize()}", image: "https://dl.dropboxusercontent.com/s/2s3jvtlfrctdcsc/settings_icon.png" 
             }
 			
             section(" ", mobileOnly: true) {
             	//App Details and Licensing Page
-            	href "infoPage", title:"App Details and Licensing", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/y2lcy6iho0dpsp5/info_icon.png"
+            	href "infoPage", title:"App Info and Licensing", description: "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()} (${textModified()})\nTimeZone: ${location.timeZone.ID}\nCurrency: ${getCurrency()}\n\nTap to view more...", 
+                image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
             }
         }
         
@@ -376,15 +353,19 @@ def getCurrency() {
 	switch (state.currencySym) {
     	case '$':
         	unitName = "US Dollar (\$)"
+            state.centSym = "¢" 
         break
         case '£':
         	unitName = "British Pound (£)"
+            state.centSym = "p"
         break
         case '€':
         	unitName = "Euro Dollar (€)"
+            state.centSym = "¢" 
         break
     	default:
         	unitName = "unknown"
+            state.centSym = "¢"
         break
     }
     return unitName
@@ -518,7 +499,7 @@ private def getTariffData() {
         		def tariffRate = tariffResp?.data?.tariff?.plan?.plan?.planDetail?.rate.toString().replaceAll("\\[|\\{|\\]|\\}", "")
                 
             	//Sends extended metrics to tiles
-            	state.tariffRate = "${tariffRate}¢"
+            	state.tariffRate = "${tariffRate}${state.centSym}"
             	
             	//Show Debug logging if enabled in preferences
             	logWriter(" ")
@@ -709,4 +690,29 @@ private def textLicense() 	{ def text =
 		"WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. "+
 		"See the License for the specific language governing permissions and "+
 		"limitations under the License."
+}
+//Application Description
+def appDesc() { "This app will connect to the Efergy Servers and generate a token as well as create the energy device automatically for you.  After that it will manage and update the device info about every 30 seconds" }
+//Adds version changes to info page
+def appVerInfo() {	
+	"v2.6.1 (Dec 8th, 2015)\n" +
+    "Fixed Tariff data to change currency symbol based on selected currency\n" +  
+ 	"\n"+
+	"v2.6.0 (Nov 11th, 2015)\n" +
+ 	"Optimized Scheduling and Added AppTouch Button to quickly refresh device from SmartApp List"+
+    "Fixed Random Errors received on reading data\n" +  
+ 	"\n"+
+	"v2.5.1 (Nov 2nd, 2015)\n" +
+ 	"Fixed Duplicate scheduling issue\n" +  
+ 	"\n"+
+	"v2.5.0 (Oct 26th, 2015)\n" +
+ 	"Restructured the main page layout of the smart app and icons\n" +  
+ 	"Added Currency Units (If TimeZone is America the Unit is automatically '\$'... If your not in America you can change it in preferences)\n" + 
+ 	"\n"+
+    "v2.4.0 (Oct 19th, 2015)\n" +
+ 	"Updated the code to handle bad authentication events\n" +
+    "\n" +
+ 	"v2.3.0 (Oct 1st, 2015)\n" +
+	"Added the new single instance only platform feature. to prevent multiple installs of this service manager\n" +
+    "--------------------------------------------------------------"
 }
