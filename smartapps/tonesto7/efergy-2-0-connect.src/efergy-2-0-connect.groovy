@@ -113,6 +113,7 @@ def prefsPage () {
             input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true, image: "https://dl.dropboxusercontent.com/s/dbpk2ucn2huvj6f/notification_icon.png") {
             	input "phone", "phone", title: "Warn with text message (optional)", description: "Phone Number", required: false, submitOnChange: true
         	}
+			if(recipients) { sendNotify("Push Notification Test Successful... Test is successful") }
         }
 		// Set Notification Recipients  
         if (location.contactBookEnabled && recipients) {
@@ -423,13 +424,16 @@ def NotifyOnNoUpdate(Integer timeSince) {
     state.lastNotified = notifiedDt.format(now)
 	    
     def message = "Something is wrong!!! Efergy Device has not updated in the last ${timeSince} seconds..."
-	
+	sendNotify(message)
+}
+
+private def sendNotify(msg) {
 	if (location.contactBookEnabled && recipients) {
-        sendNotificationToContacts(message, recipients)
+        sendNotificationToContacts(msg, recipients)
     } else {
         logWriter("contact book not enabled")
         if (phone) {
-            sendSms(phone, message)
+            sendSms(phone, msg)
         }
     }
 }
