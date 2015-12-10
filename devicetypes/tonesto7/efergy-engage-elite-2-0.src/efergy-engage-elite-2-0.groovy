@@ -44,8 +44,6 @@ metadata {
         command "updateTariffData", ["string"]
         command "updateHubData", ["string", "string", "string"]
         command "isDebugLogging", ["string"]
-        //command "isShowHubTiles", ["string"]
-        //command "isShowEstCostTiles", ["string"]
 	}
     
 	tiles (scale: 2) {
@@ -60,10 +58,14 @@ metadata {
 					[value: 4000, color: "#fb1b42"] //Bright Red
 				]
     		}
-        	tileAttribute("device.todayUsage", key: "SECONDARY_CONTROL") {
+        	tileAttribute("todayUsage", key: "SECONDARY_CONTROL") {
       				attributeState "default", label: '${currentValue}'
            	}
   		}
+        
+        valueTile("todayUsage", "device.todayUsage", width: 4, height: 1, decoration: "flat", wordWrap: true) {
+			state "default", label: '${currentValue}'
+		}
         
         valueTile("monthUsage", "device.monthUsage", width: 4, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: '${currentValue}'
@@ -85,7 +87,7 @@ metadata {
 			state "default", label: 'Hub Version:\n${currentValue}'
 		}
         
-        valueTile("readingUpdated", "device.readingUpdated", width: 6, height: 2, decoration: "flat", wordWrap: true) {
+        valueTile("readingUpdated", "device.readingUpdated", width: 4, height: 2, decoration: "flat", wordWrap: true) {
 			state "default", label:'${currentValue}'
 	    }
         
@@ -94,7 +96,7 @@ metadata {
 		}
         
         main (["power"])
-        details(["power", "monthUsage", "monthEst", "refresh", "tariffRate", "hubStatus", "hubVersion", "readingUpdated"])
+        details(["power", "todayUsage", "monthUsage", "monthEst", "tariffRate", "hubStatus", "hubVersion", "readingUpdated", "refresh"])
 	}
 }
 
