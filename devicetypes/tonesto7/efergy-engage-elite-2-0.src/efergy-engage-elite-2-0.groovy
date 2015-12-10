@@ -13,6 +13,8 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
+*   V2.3 (December 10th, 2015)
+*	- Added TodayUsage Tiles to page and re-organized the tiles
 *	v2.2 (October 26th, 2015)
 *	- Added Streamlined Tiles.  Added Tariff Rate Tile
 *	v2.1 (Sept 18th, 2015)
@@ -27,8 +29,8 @@ import java.text.SimpleDateFormat
 import groovy.time.TimeCategory 
 import groovy.time.TimeDuration
 
-def devTypeVer() {"2.2"}
-def versionDate() {"10-26-2015"}
+def devTypeVer() {"2.3"}
+def versionDate() {"12-10-2015"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
