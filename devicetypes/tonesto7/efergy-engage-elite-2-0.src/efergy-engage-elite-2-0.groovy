@@ -13,15 +13,11 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
-*   V2.3 (December 10th, 2015)
+*	V2.4.0 (December 11th, 2015)
+*	- Added Efergy's Monthly Budget value to the device tile
+*   - Too many other changes to list
+*	V2.3 (December 10th, 2015)
 *	- Added TodayUsage Tiles to page and re-organized the tiles
-*	v2.2 (October 26th, 2015)
-*	- Added Streamlined Tiles.  Added Tariff Rate Tile
-*	v2.1 (Sept 18th, 2015)
-*	- Remove debug logging from preferences.  It's now controlled from the smartapp
-*
-*	v2.0 (Sept 15th, 2015)
-*	- Device is now installed and updated via the Efergy 2.0 (Connect) SmartApp
 *  ---------------------------
 */
 import groovy.json.JsonSlurper
@@ -29,8 +25,8 @@ import java.text.SimpleDateFormat
 import groovy.time.TimeCategory 
 import groovy.time.TimeDuration
 
-def devTypeVer() {"2.3"}
-def versionDate() {"12-10-2015"}
+def devTypeVer() {"2.4.0"}
+def versionDate() {"12-11-2015"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
@@ -41,7 +37,8 @@ metadata {
         attribute "iconUrl", "string"
         command "poll"
         command "refresh"
-        command "updateUsageData", ["string", "string", "string"]
+        command "updateStateData", ["string", "string", "string"]
+        command "updateUsageData", ["string", "string", "string", "string"]
 		command "updateReadingData", ["string", "string"]
         command "updateTariffData", ["string"]
         command "updateHubData", ["string", "string", "string"]
@@ -49,7 +46,7 @@ metadata {
 	}
     
 	tiles (scale: 2) {
-        multiAttributeTile(name:"power", type:"generic", width:6, height:4) {
+        multiAttributeTile(name:"power", type:"thermostat", width:6, height:4, wordWrap: true) {
     		tileAttribute("device.power", key: "PRIMARY_CONTROL") {
       			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/vfxkm0hp6jsl56m/power_icon_bk.png", 
                 foregroundColor: "#000000",
@@ -57,23 +54,28 @@ metadata {
 					[value: 1, color: "#00cc00"], //Light Green
                 	[value: 2000, color: "#79b821"], //Darker Green
                 	[value: 3000, color: "#ffa81e"], //Orange
-					[value: 4000, color: "#fb1b42"] //Bright Red
+					[value: 4000, color: "#FFF600"], //Yellow
+                    [value: 5000, color: "#fb1b42"] //Bright Red
 				]
     		}
         	tileAttribute("todayUsage", key: "SECONDARY_CONTROL") {
-      				attributeState "default", label: '${currentValue}'
+      				attributeState "default", label: 'Today\'s Usage: ${currentValue}'
            	}
   		}
         
-        valueTile("todayUsage", "device.todayUsage", width: 4, height: 1, decoration: "flat", wordWrap: true) {
+        valueTile("todayUsage", "device.todayUsage", width: 3, height: 1, decoration: "flat", wordWrap: true) {
+			state "default", label: 'Today\'s Usage:\n${currentValue}'
+		}
+        
+        valueTile("monthUsage", "device.monthUsage", width: 3, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: '${currentValue}'
 		}
         
-        valueTile("monthUsage", "device.monthUsage", width: 4, height: 1, decoration: "flat", wordWrap: true) {
+        valueTile("monthEst", "device.monthEst", width: 3, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: '${currentValue}'
 		}
         
-        valueTile("monthEst", "device.monthEst", width: 4, height: 1, decoration: "flat", wordWrap: true) {
+        valueTile("budgetPercentage", "device.budgetPercentage", width: 3, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: '${currentValue}'
 		}
         
@@ -98,14 +100,11 @@ metadata {
 		}
         
         main (["power"])
-        details(["power", "todayUsage", "monthUsage", "monthEst", "tariffRate", "hubStatus", "hubVersion", "readingUpdated", "refresh"])
+        details(["power", "todayUsage", "monthUsage", "monthEst", "budgetPercentage", "tariffRate", "hubStatus", "hubVersion", "readingUpdated", "refresh"])
 	}
 }
 
 preferences {
-	section() {
-        
-    }
 }
 
 // parse events into attributes
@@ -116,6 +115,7 @@ def parse(String description) {
 // refresh command
 def refresh() {
 	log.info "Refresh command received..."
+    log.debug "budget: ${state.monthBudget}"
     parent.refresh()
 }
     
@@ -125,33 +125,61 @@ def poll() {
     parent.refresh()
 }
 
+def updateStateData(showLogging, monthName, currencySym) {
+	if(showLogging) {
+    	state.showLogging = showLogging.toBoolean()
+    	logWriter("DebugLogging: ${state.showLogging}") 
+    }
+    if(monthName) {
+    	state.monthName = monthName
+        logWriter("Month: ${monthName}")
+    }
+    if(currencySym) {
+    	state.currencySym = currencySym ?: ""
+        logWriter("Currency Symbol: ${state.currencySym}")
+    }
+}
+
 // Get extended energy metrics
-def updateUsageData(String todayUsage, String monthUsage, String monthEst) {
+def updateUsageData(todayUsage, todayCost, monthUsage, monthCost, monthEst, monthBudget) {
+	if (monthBudget) {
+    	state.monthBudget = monthBudget
+    }
+    def budgPercent = Math.round(Math.round(monthCost?.toFloat()) / Math.round(monthBudget?.toFloat()) * 100)
+    
     logWriter("--------------UPDATE USAGE DATA-------------")
-	logWriter("todayUsage: " + todayUsage)
-    logWriter("monthUsage: " + monthUsage)
-    logWriter("monthEst: " + monthEst)
+	logWriter("todayUsage: " + todayUsage + "kWh")
+    logWriter("todayCost: " + state.currencySym+ todayCost)
+    logWriter("monthUsage: " + monthUsage + " kWh")
+    logWriter("monthCost: " + state.currencySym + monthCost)
+    logWriter("monthEst: " + state.currencySym+ monthEst)
+    logWriter("monthBudget: " + state.currencySym + monthBudget)
+    logWriter("budget %: ${budgPercent}%")
     logWriter("")
-	sendEvent(name: "todayUsage", value: todayUsage, display: false, displayed: false)
-    sendEvent(name: "monthUsage", value: monthUsage, display: false, displayed: false)
-    sendEvent(name: "monthEst", value: monthEst, display: false, displayed: false)
+	sendEvent(name: "todayUsage", 		value: "${state.currencySym}${monthCost} (${todayUsage} kWH)", display: false, displayed: false)
+    sendEvent(name: "monthUsage", 		value: "${state.monthName}\'s Usage:\n${state.currencySym}${monthCost} (${monthUsage} kWh)", display: false, displayed: false)
+    sendEvent(name: "monthEst", 		value: "${state.monthName}\'s Bill (Est.):\n${state.currencySym}${monthEst}", display: false, displayed: false)
+    sendEvent(name: "budgetPercentage", value: "Using ${budgPercent}% of ${state.currencySym}${monthBudget} Monthly Budget", display: false, displayed: false)
 }
  
 def updateReadingData(String power, String readingUpdated) {
-    logWriter("--------------UPDATE READING DATA-------------")
-    logWriter("energy: " + power.toInteger() * 24 / 1000)
+	def newTime = Date.parse("MMM d,yyyy - h:mm:ss a", readingUpdated).format("h:mm:ss a")
+    def newDate = Date.parse("MMM d,yyyy - h:mm:ss a", readingUpdated).format("MMM d,yyyy")
+
+	logWriter("--------------UPDATE READING DATA-------------")
+    logWriter("energy: " + power.toInteger() / 1000)
     logWriter("power: " + power)
     logWriter("readingUpdated: " + readingUpdated)
     logWriter("")    
     //Updates Device Readings to tiles
-    sendEvent(name: "energy", unit: "kWh", value: power.toInteger() * 24 / 1000)
+    sendEvent(name: "energy", unit: "kWh", value: power.toInteger() / 1000, displayed: false)
     sendEvent(name: "power", unit: "W", value: power)
-    sendEvent(name: "readingUpdated", value: readingUpdated, display: false, displayed: false)
+    sendEvent(name: "readingUpdated", value: "Last Updated:\n${newDate}\n${newTime}", display: false, displayed: false)
 }
 
 def updateTariffData(String tariffVal) {
     logWriter("--------------UPDATE TARIFF DATA-------------")
-    logWriter("tariffVal: " + tariffVal)
+    logWriter("tariff rate: " + tariffVal)
     logWriter("")    
     //Updates Device Readings to tiles
     sendEvent(name: "tariffRate", value: tariffVal, display: false, displayed: false)
@@ -169,21 +197,6 @@ def updateHubData(String hubVersion, String hubStatus, String hubName) {
     sendEvent(name: "hubStatus", value: hubStatus, display: false, displayed: false)
     sendEvent(name: "hubName", value: hubName, display: false, displayed: false)
 }    
-
-def isDebugLogging(String showLogging) {
-	state.showLogging = showLogging.toBoolean()
-    logWriter("DebugLogging: ${state.showLogging}") 
-}
-
-def isShowHubTiles(String showHubTiles) {
-	state.showHubTiles = showHubTiles.toBoolean()
-    logWriter("ShowHubTiles: ${state.showHubTiles}") 
-}
-def isShowEstCostTiles(String showEstCostTiles) {
-	state.showEstCostTiles = showEstCostTiles.toBoolean()
-    logWriter("ShowEstCostTiles: ${state.showEstCostTiles}") 
-}
-
 
 //Log Writer that all logs are channel through *It will only output these if Debug Logging is enabled under preferences
 private def logWriter(value) {
