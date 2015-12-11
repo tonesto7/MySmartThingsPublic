@@ -473,8 +473,9 @@ private def getUsageData() {
             
             //Show Debug logging if enabled in preferences
             logWriter(" ")
-            logWriter("-------------------ESTIMATED USAGE DATA-------------------")
-            //logWriter("Http Usage Response: $estUseResp.data")
+            logWriter("----------------EST USAGE RAW HTTP RESPONSE---------------")
+            logWriter("Http Usage Response: ${estUseResp?.data}")
+            logWriter(" ")
             logWriter("TodayUsage: Today\'s Usage: ${state.currencySym}${estUseResp?.data?.day_tariff?.estimate} (${estUseResp?.data?.day_kwh?.estimate} kWh)")
             logWriter("MonthUsage: ${state.monthName} Usage ${state.currencySym}${estUseResp?.data?.month_tariff?.previousSum} (${estUseResp?.data.month_kwh?.previousSum} kWh)")
             logWriter("MonthEst: ${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp?.data?.month_tariff?.estimate}")
@@ -572,7 +573,7 @@ private def getReadingData() {
 			//Save last Cid reading value to device state
         	if (cidReading) {
         		state.powerReading = cidReading	
-            	state.energyReading = cidReading.toInteger() / 1000 
+            	state.energyReading = cidReading.toInteger() 
         	}
 
 			//state.powerVal = cidReading
