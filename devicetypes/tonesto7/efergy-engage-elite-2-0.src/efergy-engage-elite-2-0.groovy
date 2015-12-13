@@ -38,7 +38,7 @@ metadata {
         command "poll"
         command "refresh"
         command "updateStateData", ["string", "string", "string"]
-        command "updateUsageData", ["string", "string", "string", "string"]
+        command "updateUsageData", ["string", "string", "string", "string", "string", "string"]
 		command "updateReadingData", ["string", "string"]
         command "updateTariffData", ["string"]
         command "updateHubData", ["string", "string", "string"]
