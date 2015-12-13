@@ -93,7 +93,7 @@ metadata {
 			state "default", label: 'Hub Version:\n${currentValue}'
 		}
         
-        valueTile("readingUpdated", "device.readingUpdated", width: 4, height: 2, decoration: "flat", wordWrap: true) {
+        valueTile("readingUpdated", "device.readingUpdated", width: 4, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label:'${currentValue}'
 	    }
         
@@ -101,8 +101,12 @@ metadata {
 			state "default", action:"refresh.refresh", icon:"st.secondary.refresh"
 		}
         
+        valueTile("devVer", "device.devVer", width: 4, height: 1, decoration: "flat", wordWrap: true) {
+			state "default", label: '${currentValue}'
+		}
+        
         main (["power"])
-        details(["power", "todayUsage", "monthUsage", "monthEst", "budgetPercentage", "tariffRate", "hubStatus", "hubVersion", "readingUpdated", "refresh"])
+        details(["power", "todayUsage", "monthUsage", "monthEst", "budgetPercentage", "tariffRate", "hubStatus", "hubVersion", "readingUpdated", "devVer", "refresh"])
 	}
 }
 
@@ -140,6 +144,9 @@ def updateStateData(showLogging, monthName, currencySym) {
     	state.currencySym = currencySym ?: ""
         logWriter("Currency Symbol: ${state.currencySym}")
     }
+    if(devTypeVer && versionDate) {
+    	sendEvent(name: "devVer", value: "${device.label}\nDev. Type: V${devTypeVer()} (${versionDate()})", display: false, displayed: false)
+    }
 }
 
 // Get extended energy metrics
@@ -161,7 +168,7 @@ def updateUsageData(todayUsage, todayCost, monthUsage, monthCost, monthEst, mont
 	sendEvent(name: "todayUsage", 		value: "${state.currencySym}${monthCost} (${todayUsage} kWH)", display: false, displayed: false)
     sendEvent(name: "monthUsage", 		value: "${state.monthName}\'s Usage:\n${state.currencySym}${monthCost} (${monthUsage} kWh)", display: false, displayed: false)
     sendEvent(name: "monthEst", 		value: "${state.monthName}\'s Bill (Est.):\n${state.currencySym}${monthEst}", display: false, displayed: false)
-    sendEvent(name: "budgetPercentage", value: "Using ${budgPercent}% of ${state.currencySym}${monthBudget} Monthly Budget", display: false, displayed: false)
+    sendEvent(name: "budgetPercentage", value: "Monthly Budget:\nUsing ${budgPercent}% (${state.currencySym}${monthCost}) of ${state.currencySym}${monthBudget} ", display: false, displayed: false)
 }
  
 def updateReadingData(String power, String readingUpdated) {
