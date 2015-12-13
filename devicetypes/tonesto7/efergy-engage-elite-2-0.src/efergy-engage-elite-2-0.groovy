@@ -13,6 +13,8 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
+*	V2.4.1 (December 13th, 2015)
+*	- Fixed updateUsageData Code that was missing strings from parent app
 *	V2.4.0 (December 11th, 2015)
 *	- Added Efergy's Monthly Budget value to the device tile
 *   - Too many other changes to list
@@ -25,8 +27,8 @@ import java.text.SimpleDateFormat
 import groovy.time.TimeCategory 
 import groovy.time.TimeDuration
 
-def devTypeVer() {"2.4.0"}
-def versionDate() {"12-11-2015"}
+def devTypeVer() {"2.4.1"}
+def versionDate() {"12-13-2015"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
