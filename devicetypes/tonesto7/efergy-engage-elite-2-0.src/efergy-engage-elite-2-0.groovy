@@ -13,6 +13,8 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
+*	V2.4.2 (December 14th, 2015)
+*	- Minor device page layout changes
 *	V2.4.1 (December 13th, 2015)
 *	- Fixed updateUsageData Code that was missing strings from parent app
 *	V2.4.0 (December 11th, 2015)
@@ -27,8 +29,8 @@ import java.text.SimpleDateFormat
 import groovy.time.TimeCategory 
 import groovy.time.TimeDuration
 
-def devTypeVer() {"2.4.1"}
-def versionDate() {"12-13-2015"}
+def devTypeVer() {"2.4.2"}
+def versionDate() {"12-14-2015"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
@@ -81,19 +83,19 @@ metadata {
 			state "default", label: '${currentValue}'
 		}
         
-        valueTile("tariffRate", "device.tariffRate", width: 2, height: 1, decoration: "flat") {
+        valueTile("tariffRate", "device.tariffRate", width: 3, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: 'Tariff Rate:\n${currentValue}/kWH'
 		}
 		
-        valueTile("hubStatus", "device.hubStatus", width: 2, height: 1, decoration: "flat") {
+        valueTile("hubStatus", "device.hubStatus", width: 2, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: 'Hub Status:\n${currentValue}'
 		}
         
-        valueTile("hubVersion", "device.hubVersion", width: 2, height: 1, decoration: "flat") {
+        valueTile("hubVersion", "device.hubVersion", width: 2, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: 'Hub Version:\n${currentValue}'
 		}
         
-        valueTile("readingUpdated", "device.readingUpdated", width: 4, height: 1, decoration: "flat", wordWrap: true) {
+        valueTile("readingUpdated", "device.readingUpdated", width: 3, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label:'${currentValue}'
 	    }
         
@@ -106,7 +108,7 @@ metadata {
 		}
         
         main (["power"])
-        details(["power", "todayUsage", "monthUsage", "monthEst", "budgetPercentage", "tariffRate", "hubStatus", "hubVersion", "readingUpdated", "devVer", "refresh"])
+        details(["power", "todayUsage", "monthUsage", "monthEst", "budgetPercentage", "tariffRate", "readingUpdated", "refresh", "hubStatus", "hubVersion", "devVer"])
 	}
 }
 
@@ -168,7 +170,7 @@ def updateUsageData(todayUsage, todayCost, monthUsage, monthCost, monthEst, mont
 	sendEvent(name: "todayUsage", 		value: "${state.currencySym}${monthCost} (${todayUsage} kWH)", display: false, displayed: false)
     sendEvent(name: "monthUsage", 		value: "${state.monthName}\'s Usage:\n${state.currencySym}${monthCost} (${monthUsage} kWh)", display: false, displayed: false)
     sendEvent(name: "monthEst", 		value: "${state.monthName}\'s Bill (Est.):\n${state.currencySym}${monthEst}", display: false, displayed: false)
-    sendEvent(name: "budgetPercentage", value: "Monthly Budget:\nUsing ${budgPercent}% (${state.currencySym}${monthCost}) of ${state.currencySym}${monthBudget} ", display: false, displayed: false)
+    sendEvent(name: "budgetPercentage", value: "Monthly Budget:\nUsed ${budgPercent}% (${state.currencySym}${monthCost}) of ${state.currencySym}${monthBudget} ", display: false, displayed: false)
 }
  
 def updateReadingData(String power, String readingUpdated) {
