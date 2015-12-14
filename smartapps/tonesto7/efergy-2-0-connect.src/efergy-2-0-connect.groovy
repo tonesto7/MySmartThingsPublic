@@ -23,22 +23,18 @@ definition(
 
 //Change This to rename the Default App Name
 def appName() { "Efergy 2.0 (Connect)" }
-//Pretty Self Explanatory
 def appAuthor() { "Anthony S." }
-//So is this...
 def appNamespace() { "tonesto7" }
-//This one too...
 def appVersion() { "2.6.1" }
-//Definitely this one too!
 def appVerDate() { "12-8-2015" }
-
 
 preferences {
 	page(name: "startPage")
     page(name: "loginPage")
     page(name: "mainPage")
     page(name: "prefsPage")
-	page(name: "hubInfoPage")
+	page(name: "hubInfoPage", content: "hubInfoPage", refreshTimeout:5)
+    page(name: "readingInfoPage", content: "readingInfoPage", refreshTimeout:5)
     page(name: "infoPage")
     page(name: "savePage")
 }
@@ -79,6 +75,7 @@ def mainPage() {
         if (state.efergyAuthToken) {
             section("Efergy Hub:") { 
         		href "hubInfoPage", title:"View Hub Info", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/amhupeknid6osmu/St_hub.png"
+                href "readingInfoPage", title:"View Reading Data", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/3wb351466vn4w99/power_meter.png"
         	}
 			
             section("Preferences:") {
@@ -140,6 +137,20 @@ def prefsPage () {
            		log.info "Debug Logging Disabled!!!"
                	refresh()
            	}
+        }
+    }
+}
+
+def readingInfoPage () {
+	if (state.hubName == null) { refresh() }
+	return dynamicPage(name: "readingInfoPage", install: false) {
+ 		section ("Efergy Reading Information") {
+    		paragraph "Current Power Reading: " + state.powerReading
+        	paragraph "Current Energy Reading: " + state.powerReading
+        	paragraph "Tariff Rate: " + state.currencySym + state.tariffRate
+        	paragraph "Today's Usage: " + state.currencySym + state.todayCost + " (${state.todayUsage} kWH"
+        	paragraph "${state.monthName} Usage: " + state.currencySym + state.monthCost + " (${state.monthUsage} kWH"
+        	paragraph "Month Cost Estimate: " + state.currencySym + state.monthBudget
         }
     }
 }
@@ -253,10 +264,10 @@ def updateDeviceData() {
 	logWriter(" ")
     logWriter("--------------Sending Data to Device--------------")
 	getAllChildDevices().each { 
-    	it.isDebugLogging(state.showLogging.toString())
+        it.updateStateData(state.showLogging.toString(), state.monthName.toString(), state.currencySym.toString())
     	it.updateReadingData(state.powerReading.toString(), state.readingUpdated)
         it.updateTariffData(state.tariffRate)
-		it.updateUsageData(state.todayUsage, state.monthUsage, state.monthEst)
+		it.updateUsageData(state.todayUsage, state.todayCost, state.monthUsage, state.monthCost, state.monthEst, state.monthBudget)
 		it.updateHubData(state.hubVersion, state.hubStatus, state.hubName)
 	}
 }
@@ -294,7 +305,7 @@ private addSchedule() {
 def checkSchedule() {
 	logWriter("Check Schedule has ran!")	
     GetLastRefrshSec()
-    def timeSince = state.timeSinceRfsh ? state.timeSinceRfsh : null 
+    def timeSince = state.timeSinceRfsh ?: null 
     if (timeSince > 360) {
     	log.warn "It has been more than 5 minutes since last refresh!!!"
         log.debug "Scheduling Issue found... Re-initializing schedule... Data should resume refreshing in 30 seconds" 
@@ -467,18 +478,23 @@ private def getUsageData() {
 	def estUseClosure = { 
         estUseResp -> 
             //Sends extended metrics to tiles
-            state.todayUsage = "Today\'s Usage: ${state.currencySym}${estUseResp?.data?.day_tariff?.estimate} (${estUseResp?.data?.day_kwh.estimate} kWh)"
-            state.monthUsage = "${state.monthName} Usage ${state.currencySym}${estUseResp?.data?.month_tariff?.previousSum} (${estUseResp?.data?.month_kwh?.previousSum} kWh)"
-            state.monthEst = "${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp?.data?.month_tariff?.estimate}"
+            state.todayUsage = "${estUseResp?.data?.day_kwh.estimate}"
+            state.todayCost = "${estUseResp?.data?.day_tariff?.estimate}"
+            state.monthUsage = "${estUseResp?.data?.month_kwh?.previousSum}"
+            state.monthCost = "${estUseResp?.data?.month_tariff?.previousSum}"
+            state.monthEst = "${estUseResp?.data?.month_tariff?.estimate}"
+            state.monthBudget = "${estUseResp?.data?.month_budget}"
             
             //Show Debug logging if enabled in preferences
             logWriter(" ")
             logWriter("----------------EST USAGE RAW HTTP RESPONSE---------------")
             logWriter("Http Usage Response: ${estUseResp?.data}")
             logWriter(" ")
+            logWriter("-------------------ESTIMATED USAGE DATA-------------------")
             logWriter("TodayUsage: Today\'s Usage: ${state.currencySym}${estUseResp?.data?.day_tariff?.estimate} (${estUseResp?.data?.day_kwh?.estimate} kWh)")
             logWriter("MonthUsage: ${state.monthName} Usage ${state.currencySym}${estUseResp?.data?.month_tariff?.previousSum} (${estUseResp?.data.month_kwh?.previousSum} kWh)")
             logWriter("MonthEst: ${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp?.data?.month_tariff?.estimate}")
+            logWriter("${state.monthName}\'s Budget ${state.currencySym}${estUseResp?.data?.month_budget}")
 		}
         
 	def params = [
@@ -525,8 +541,8 @@ private def getTariffData() {
 private def getReadingData() {
 	try {
     	def today = new Date()
-    	def tf = new SimpleDateFormat("M/d/yyyy - h:mm:ss a")
-    		tf.setTimeZone(TimeZone.getTimeZone("America/New_York"))
+    	def tf = new SimpleDateFormat("MMM d,yyyy - h:mm:ss a")
+    		tf.setTimeZone(location?.timeZone)
     	def cidVal = "" 
 		def cidData = [{}]
     	def cidUnit = ""
@@ -577,7 +593,7 @@ private def getReadingData() {
         	}
 
 			//state.powerVal = cidReading
-        	state.readingUpdated = "Last Updated:\n${readingUpdated}"
+        	state.readingUpdated = "${readingUpdated}"
             state.readingDt = readingUpdated
             
 			//Show Debug logging if enabled in preferences
@@ -696,6 +712,9 @@ private def textLicense() 	{ def text =
 def appDesc() { "This app will connect to the Efergy Servers and generate a token as well as create the energy device automatically for you.  After that it will manage and update the device info about every 30 seconds" }
 //Adds version changes to info page
 def appVerInfo() {	
+	"v2.7.0 (Dec 11th, 2015)\n" +
+    "Reworked alot of the code that send the data to the devic...\n" +  
+ 	"\n"+
 	"v2.6.1 (Dec 8th, 2015)\n" +
     "Fixed Tariff data to change currency symbol based on selected currency\n" +  
  	"\n"+
