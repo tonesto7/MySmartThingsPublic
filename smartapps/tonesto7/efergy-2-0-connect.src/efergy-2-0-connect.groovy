@@ -521,7 +521,7 @@ private def getTariffData() {
             	//Show Debug logging if enabled in preferences
             	logWriter(" ")
             	logWriter("-------------------TARIFF RATE DATA-------------------")
-                logWriter("${state.tariffRate}")
+                logWriter("Tariff Rate: ${state.tariffRate}")
          	}
                 
 		def params = [
