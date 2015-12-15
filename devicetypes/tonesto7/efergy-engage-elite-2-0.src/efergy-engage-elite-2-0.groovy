@@ -13,6 +13,8 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
+*	V2.4.3 (December 15th, 2015)
+*	- Fixed Budget Arithmatic for those that don't have it set under there efergy account
 *	V2.4.2 (December 14th, 2015)
 *	- Minor device page layout changes
 *	V2.4.1 (December 13th, 2015)
@@ -29,8 +31,8 @@ import java.text.SimpleDateFormat
 import groovy.time.TimeCategory 
 import groovy.time.TimeDuration
 
-def devTypeVer() {"2.4.2"}
-def versionDate() {"12-14-2015"}
+def devTypeVer() {"2.4.3"}
+def versionDate() {"12-15-2015"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
@@ -123,7 +125,6 @@ def parse(String description) {
 // refresh command
 def refresh() {
 	log.info "Refresh command received..."
-    log.debug "budget: ${state.monthBudget}"
     parent.refresh()
 }
     
@@ -153,11 +154,7 @@ def updateStateData(showLogging, monthName, currencySym) {
 
 // Get extended energy metrics
 def updateUsageData(todayUsage, todayCost, monthUsage, monthCost, monthEst, monthBudget) {
-	if (monthBudget) {
-    	state.monthBudget = monthBudget
-    }
-    def budgPercent = Math.round(Math.round(monthCost?.toFloat()) / Math.round(monthBudget?.toFloat()) * 100)
-    
+    def budgPercent
     logWriter("--------------UPDATE USAGE DATA-------------")
 	logWriter("todayUsage: " + todayUsage + "kWh")
     logWriter("todayCost: " + state.currencySym+ todayCost)
@@ -165,12 +162,23 @@ def updateUsageData(todayUsage, todayCost, monthUsage, monthCost, monthEst, mont
     logWriter("monthCost: " + state.currencySym + monthCost)
     logWriter("monthEst: " + state.currencySym+ monthEst)
     logWriter("monthBudget: " + state.currencySym + monthBudget)
-    logWriter("budget %: ${budgPercent}%")
+    
+    sendEvent(name: "todayUsage", value: "${state.currencySym}${monthCost} (${todayUsage} kWH)", display: false, displayed: false)
+    sendEvent(name: "monthUsage", value: "${state.monthName}\'s Usage:\n${state.currencySym}${monthCost} (${monthUsage} kWh)", display: false, displayed: false)
+    sendEvent(name: "monthEst",   value: "${state.monthName}\'s Bill (Est.):\n${state.currencySym}${monthEst}", display: false, displayed: false)
+    
+    if (monthBudget > 0) {
+        budgPercent = Math.round(Math.round(monthCost?.toFloat()) / Math.round(monthBudget?.toFloat()) * 100)
+        log.debug "budgPerc: ${budgPercent}"
+        sendEvent(name: "budgetPercentage", value: "Monthly Budget:\nUsed ${budgPercent}% (${state.currencySym}${monthCost}) of ${state.currencySym}${monthBudget} ", display: false, displayed: false)
+    }
+   	else {
+    	budgPercent = 0
+        log.debug "budgPerc: ${budgPercent}"
+    	sendEvent(name: "budgetPercentage", value: "Monthly Budget:\nBudget Not Set...", display: false, displayed: false)
+    }
+    logWriter("budget percentage: ${budgPercent}%")
     logWriter("")
-	sendEvent(name: "todayUsage", 		value: "${state.currencySym}${monthCost} (${todayUsage} kWH)", display: false, displayed: false)
-    sendEvent(name: "monthUsage", 		value: "${state.monthName}\'s Usage:\n${state.currencySym}${monthCost} (${monthUsage} kWh)", display: false, displayed: false)
-    sendEvent(name: "monthEst", 		value: "${state.monthName}\'s Bill (Est.):\n${state.currencySym}${monthEst}", display: false, displayed: false)
-    sendEvent(name: "budgetPercentage", value: "Monthly Budget:\nUsed ${budgPercent}% (${state.currencySym}${monthCost}) of ${state.currencySym}${monthBudget} ", display: false, displayed: false)
 }
  
 def updateReadingData(String power, String readingUpdated) {
