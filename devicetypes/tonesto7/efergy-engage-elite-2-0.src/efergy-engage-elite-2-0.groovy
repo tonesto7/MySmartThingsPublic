@@ -13,8 +13,9 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
-*	V2.4.3 (December 15th, 2015)
-*	- Fixed Budget Arithmatic for those that don't have it set under there efergy account
+*	V2.4.3 (December 18th, 2015)
+*	- Had to change MultiAttribute tile type from Thermostat to Generic to 
+*	- fix issue with latest Android Update (2.0.7)
 *	V2.4.2 (December 14th, 2015)
 *	- Minor device page layout changes
 *	V2.4.1 (December 13th, 2015)
@@ -22,8 +23,6 @@
 *	V2.4.0 (December 11th, 2015)
 *	- Added Efergy's Monthly Budget value to the device tile
 *   - Too many other changes to list
-*	V2.3 (December 10th, 2015)
-*	- Added TodayUsage Tiles to page and re-organized the tiles
 *  ---------------------------
 */
 import groovy.json.JsonSlurper
@@ -32,7 +31,7 @@ import groovy.time.TimeCategory
 import groovy.time.TimeDuration
 
 def devTypeVer() {"2.4.3"}
-def versionDate() {"12-15-2015"}
+def versionDate() {"12-18-2015"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
@@ -52,7 +51,7 @@ metadata {
 	}
     
 	tiles (scale: 2) {
-        multiAttributeTile(name:"power", type:"thermostat", width:6, height:4, wordWrap: true) {
+        multiAttributeTile(name:"power", type:"generic", width:6, height:4, wordWrap: true) {
     		tileAttribute("device.power", key: "PRIMARY_CONTROL") {
       			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/vfxkm0hp6jsl56m/power_icon_bk.png", 
                 foregroundColor: "#000000",
@@ -169,7 +168,6 @@ def updateUsageData(todayUsage, todayCost, monthUsage, monthCost, monthEst, mont
     
     if (monthBudget > 0) {
         budgPercent = Math.round(Math.round(monthCost?.toFloat()) / Math.round(monthBudget?.toFloat()) * 100)
-        log.debug "budgPerc: ${budgPercent}"
         sendEvent(name: "budgetPercentage", value: "Monthly Budget:\nUsed ${budgPercent}% (${state.currencySym}${monthCost}) of ${state.currencySym}${monthBudget} ", display: false, displayed: false)
     }
    	else {
