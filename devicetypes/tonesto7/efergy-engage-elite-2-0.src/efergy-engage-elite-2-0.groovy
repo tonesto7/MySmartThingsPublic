@@ -13,6 +13,8 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
+*	V2.4.4 (January 2nd, 2016)
+*	- Fixed code for todayUsage. Thanks @Xtropy
 *	V2.4.3 (December 18th, 2015)
 *	- Had to change MultiAttribute tile type from Thermostat to Generic to 
 *	- fix issue with latest Android Update (2.0.7)
@@ -30,8 +32,8 @@ import java.text.SimpleDateFormat
 import groovy.time.TimeCategory 
 import groovy.time.TimeDuration
 
-def devTypeVer() {"2.4.3"}
-def versionDate() {"12-18-2015"}
+def devTypeVer() {"2.4.4"}
+def versionDate() {"1-2-2016"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
@@ -162,7 +164,7 @@ def updateUsageData(todayUsage, todayCost, monthUsage, monthCost, monthEst, mont
     logWriter("monthEst: " + state.currencySym+ monthEst)
     logWriter("monthBudget: " + state.currencySym + monthBudget)
     
-    sendEvent(name: "todayUsage", value: "${state.currencySym}${monthCost} (${todayUsage} kWH)", display: false, displayed: false)
+    sendEvent(name: "todayUsage", value: "${state.currencySym}${todayCost} (${todayUsage} kWH)", display: false, displayed: false)
     sendEvent(name: "monthUsage", value: "${state.monthName}\'s Usage:\n${state.currencySym}${monthCost} (${monthUsage} kWh)", display: false, displayed: false)
     sendEvent(name: "monthEst",   value: "${state.monthName}\'s Bill (Est.):\n${state.currencySym}${monthEst}", display: false, displayed: false)
     
