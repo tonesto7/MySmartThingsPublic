@@ -25,8 +25,8 @@ definition(
 def appName() { "Efergy 2.0 (Connect)" }
 def appAuthor() { "Anthony S." }
 def appNamespace() { "tonesto7" }
-def appVersion() { "2.6.1" }
-def appVerDate() { "12-8-2015" }
+def appVersion() { "2.7.1" }
+def appVerDate() { "1-8-2016" }
 
 preferences {
 	page(name: "startPage")
@@ -65,8 +65,10 @@ def loginPage() {
 /* Preferences */
 def mainPage() {
 	if (!state.efergyAuthToken) { getAuthToken() } 
+    if (!state.pushTested) { state.pushTested = false }
     if (!state.currencySym) { state.currencySym = "\$" }
     getCurrency()
+    def isDebug = state.showLogging ? true : false
     def notif = recipients ? true : false
     if (state.loginStatus != "ok") { return loginPage() }
     def showUninstall = state.appInstalled
@@ -79,7 +81,7 @@ def mainPage() {
         	}
 			
             section("Preferences:") {
-            	href "prefsPage", title: "App Preferences", description: "Tap to configure.\n\nDebug Logging: ${state.showLogging.toString().capitalize()}\nNotifications: ${notif.toString().capitalize()}", image: "https://dl.dropboxusercontent.com/s/2s3jvtlfrctdcsc/settings_icon.png" 
+            	href "prefsPage", title: "App Preferences", description: "Tap to configure.\n\nDebug Logging: ${isDebug.toString().capitalize()}\nNotifications: ${notif.toString().capitalize()}", image: "https://dl.dropboxusercontent.com/s/2s3jvtlfrctdcsc/settings_icon.png" 
             }
 			
             section(" ", mobileOnly: true) {
@@ -105,16 +107,25 @@ def prefsPage () {
         	paragraph "App and Locale Preferences", image: "https://dl.dropboxusercontent.com/s/2s3jvtlfrctdcsc/settings_icon.png" 
         }
         section("Currency Selection:"){	
-             	input(name: "currencySym", type: "enum", title: "Select your Currency Symbol", options: ["\$", "£", "€"], defaultValue: "\$", submitOnChange: true, 
-                	image: "https://dl.dropboxusercontent.com/s/7it48iosv1mzcl1/currency_icon.png")
-               	state.currencySym = currencySym
-            }
-    	section("Notifications:"){	
+           	input(name: "currencySym", type: "enum", title: "Select your Currency Symbol", options: ["\$", "£", "€"], defaultValue: "\$", submitOnChange: true, 
+               	image: "https://dl.dropboxusercontent.com/s/7it48iosv1mzcl1/currency_icon.png")
+           	state.currencySym = currencySym
+        }
+    	
+        section("Notifications:"){	
             input("recipients", "contact", title: "Send notifications to", required: false, submitOnChange: true, image: "https://dl.dropboxusercontent.com/s/dbpk2ucn2huvj6f/notification_icon.png") {
             	input "phone", "phone", title: "Warn with text message (optional)", description: "Phone Number", required: false, submitOnChange: true
         	}
-			if(recipients) { sendNotify("Push Notification Test Successful... Test is successful") }
+            if(recipients) { 
+            	if((settings.recipients != recipients && recipients) || !state.pushTested) {
+            		sendNotify("Push Notification Test Successful... Test is successful") 
+            		state.pushTested = true
+                }
+                else { state.pushTested = true }
+            }
+            else { state.pushTested = false }
         }
+        
 		// Set Notification Recipients  
         if (location.contactBookEnabled && recipients) {
         	section("Notify Values...", hidden: true, hideable: true) { 
@@ -124,21 +135,21 @@ def prefsPage () {
                	state.notifyDelayMin = notifyDelayMin         
             }
         }
+        
         section("Debug Logging:"){
-           	paragraph "FYI... Enabling this also enables logging in the Child Device as well"
             paragraph "This can help you when you are having issues with data not updating\n** This option generates alot of Log Entries!!! Only enable for troubleshooting **"
+            paragraph "FYI... Enabling this also enables logging in the Child Device as well"
         	input "showLogging", "bool", title: "Enable Debug Logging", required: false, displayDuringSetup: false, defaultValue: false, submitOnChange: true, image: "https://dl.dropboxusercontent.com/s/nsxve4ciehlk3op/log_icon.png"
         	if(showLogging && !state.showLogging) { 
            		state.showLogging = true
            		log.info "Debug Logging Enabled!!!"
-               	refresh()
            	}
         	if(!showLogging && state.showLogging){ 
            		state.showLogging = false 
            		log.info "Debug Logging Disabled!!!"
-               	refresh()
            	}
         }
+        refresh()
     }
 }
 
@@ -265,11 +276,11 @@ def updateDeviceData() {
 	logWriter(" ")
     logWriter("--------------Sending Data to Device--------------")
 	getAllChildDevices().each { 
-        it.updateStateData(state.showLogging.toString(), state.monthName.toString(), state.currencySym.toString())
-    	it.updateReadingData(state.powerReading.toString(), state.readingUpdated)
-        it.updateTariffData(state.tariffRate)
-		it.updateUsageData(state.todayUsage, state.todayCost, state.monthUsage, state.monthCost, state.monthEst, state.monthBudget)
-		it.updateHubData(state.hubVersion, state.hubStatus, state.hubName)
+        it.updateStateData(state?.showLogging?.toString(), state?.monthName?.toString(), state?.currencySym?.toString())
+    	it.updateReadingData(state?.powerReading?.toString(), state?.readingUpdated)
+        it.updateTariffData(state?.tariffRate)
+		it.updateUsageData(state?.todayUsage, state?.todayCost, state?.monthUsage, state?.monthCost, state?.monthEst, state?.monthBudget)
+		it.updateHubData(state?.hubVersion, state?.hubStatus, state?.hubName)
 	}
 }
 
@@ -277,7 +288,7 @@ def updateDeviceData() {
 def refresh() {
 	GetLastRefrshSec()
 	if (state.efergyAuthToken) {
-		if (state.timeSinceRfsh > 360 || !state.timeSinceRfsh) { checkSchedule() }
+		if (state?.timeSinceRfsh > 360 || !state?.timeSinceRfsh) { checkSchedule() }
     	logWriter("")	
 		log.info "Refreshing Efergy Energy data from engage.efergy.com"
     
@@ -459,9 +470,6 @@ def GetTimeDiffSeconds(String startDate) {
     }
 }
 
-def todaysUseCalc() {
-	
-}
 
 //Matches hubType to a full name
 def getHubName(String hubType) {
@@ -491,14 +499,12 @@ private def getUsageData() {
             
             //Show Debug logging if enabled in preferences
             logWriter(" ")
-            logWriter("----------------EST USAGE RAW HTTP RESPONSE---------------")
-            logWriter("Http Usage Response: ${estUseResp?.data}")
-            logWriter(" ")
             logWriter("-------------------ESTIMATED USAGE DATA-------------------")
-            logWriter("TodayUsage: Today\'s Usage: ${state.currencySym}${estUseResp?.data?.day_tariff?.estimate} (${estUseResp?.data?.day_kwh?.estimate} kWh)")
-            logWriter("MonthUsage: ${state.monthName} Usage ${state.currencySym}${estUseResp?.data?.month_tariff?.previousSum} (${estUseResp?.data.month_kwh?.previousSum} kWh)")
-            logWriter("MonthEst: ${state.monthName}\'s Cost (Est.) ${state.currencySym}${estUseResp?.data?.month_tariff?.estimate}")
-            logWriter("${state.monthName}\'s Budget ${state.currencySym}${estUseResp?.data?.month_budget}")
+            logWriter("Http Usage Response: ${estUseResp?.data}")
+            logWriter("TodayUsage: Today\'s Usage: ${state?.currencySym}${estUseResp?.data?.day_tariff?.estimate} (${estUseResp?.data?.day_kwh?.estimate} kWh)")
+            logWriter("MonthUsage: ${state?.monthName} Usage ${state?.currencySym}${estUseResp?.data?.month_tariff?.previousSum} (${estUseResp?.data.month_kwh?.previousSum} kWh)")
+            logWriter("MonthEst: ${state?.monthName}\'s Cost (Est.) ${state?.currencySym}${estUseResp?.data?.month_tariff?.estimate}")
+            logWriter("${state?.monthName}\'s Budget ${state?.currencySym}${estUseResp?.data?.month_budget}")
 		}
         
 	def params = [
@@ -603,7 +609,7 @@ private def getReadingData() {
 			//Show Debug logging if enabled in preferences
         	logWriter(" ")	
         	logWriter("-------------------USAGE READING DATA-------------------")
-        	//log.debug("HTTP Status Response: " + respData)	/*<------Uncomment this line to log the Http response */
+        	logWriter("HTTP Status Response: " + respData)	/*<------Uncomment this line to log the Http response */
 			logWriter("Cid Type: " + state.cidType)
         	logWriter("Cid Unit: " + cidUnit)
         	logWriter("Timestamp: " + timeVal)
@@ -621,7 +627,6 @@ private def getReadingData() {
         	contentType: "json"]
             
 		httpGet(summaryParams, summaryClosure)
-        todaysUseCalc()
     }
     catch (e) { 
     	log.error "getReadingData Exception: ${e}" 
@@ -716,8 +721,13 @@ private def textLicense() 	{ def text =
 def appDesc() { "This app will connect to the Efergy Servers and generate a token as well as create the energy device automatically for you.  After that it will manage and update the device info about every 30 seconds" }
 //Adds version changes to info page
 def appVerInfo() {	
+	"v2.7.1 (Jan 8th, 2016)\n" +
+ 	"Adden in logic to stop push notifications everytime you enter app preferences\n"+
+    "Fixed debug logging require you to go back into setting a second time to actual update the change\n"+
+    "Minor code cleanup\n"+
+ 	"\n"+
 	"v2.7.0 (Dec 11th, 2015)\n" +
-    "Reworked alot of the code that send the data to the devic...\n" +  
+    "Reworked alot of the code that sends the data to the device...\n" +  
  	"\n"+
 	"v2.6.1 (Dec 8th, 2015)\n" +
     "Fixed Tariff data to change currency symbol based on selected currency\n" +  
