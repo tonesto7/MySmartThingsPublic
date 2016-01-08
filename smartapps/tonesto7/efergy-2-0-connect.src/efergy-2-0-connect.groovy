@@ -722,9 +722,9 @@ def appDesc() { "This app will connect to the Efergy Servers and generate a toke
 //Adds version changes to info page
 def appVerInfo() {	
 	"v2.7.1 (Jan 8th, 2016)\n" +
- 	"Adden in logic to stop push notifications everytime you enter app preferences\n"+
-    "Fixed debug logging require you to go back into setting a second time to actual update the change\n"+
-    "Minor code cleanup\n"+
+ 	"Added in logic to stop push notifications everytime you enter app preferences\n"+
+    "Fixed debug logging require you to go back into setting a second time to actual update the changes\n"+
+    "Minor code cleanups\n"+
  	"\n"+
 	"v2.7.0 (Dec 11th, 2015)\n" +
     "Reworked alot of the code that sends the data to the device...\n" +  
