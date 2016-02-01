@@ -4,6 +4,8 @@
  *  Original Author: dianoga7@3dgo.net, desertblade@gmail.com
  *  Code: https://github.com/smartthings-users/device-type.nest
  *
+ * Version 1.0.1ERS - Eric's mod
+ *
  * INSTALL:
  * 1) Create a new device (https://graph.api.smartthings.com/device/list)
  *     Name: Your Choice
@@ -47,13 +49,14 @@ preferences {
 metadata {
 	definition (name: "Nest Thermostat (MultiTile)", namespace: "tonesto7", author: "Anthony S.") {
 		capability "Polling"
-        capability "Refresh"
+		capability "Refresh"
 		capability "Relative Humidity Measurement"
 		capability "Thermostat"
 		capability "Temperature Measurement"
 		capability "Presence Sensor"
 		capability "Sensor"
-        capability "Signal Strength"
+		capability "Actuator"
+		capability "Signal Strength"
 
 		command "away"
 		command "present"
@@ -64,7 +67,7 @@ metadata {
 		command "coolingSetpointDown"
 		command "setFahrenheit"
 		command "setCelsius"
-        command "setTemperature"
+		command "setTemperature"
 
 		attribute "temperatureUnit", "string"
 	}
@@ -73,42 +76,42 @@ metadata {
 		// TODO: define status and reply messages here
 	}
     
-    tiles(scale: 2) {
+	tiles(scale: 2) {
 		multiAttributeTile(name:"temperature", type:"thermostat", width:6, height:4) {
   			tileAttribute("device.temperature", key: "PRIMARY_CONTROL") {
-    			attributeState("default", label:'${currentValue}°')
+    				attributeState("default", label:'${currentValue}°')
   			}
   			tileAttribute("device.temperature", key: "VALUE_CONTROL") {
-    			attributeState("default", action: "setTemperature")
+    				attributeState("default", action: "setTemperature")
   			}
   			tileAttribute("device.humidity", key: "SECONDARY_CONTROL") {
-    			attributeState("default", label:'${currentValue}%', unit:"%")
+    				attributeState("default", label:'${currentValue}%', unit:"%")
   			}
   			tileAttribute("device.thermostatOperatingState", key: "OPERATING_STATE") {
-    			attributeState("idle", backgroundColor:"#44b621")
-    			attributeState("heating", backgroundColor:"#ffa81e")
-    			attributeState("cooling", backgroundColor:"#269bd2")
+    				attributeState("idle", backgroundColor:"#44b621")
+    				attributeState("heating", backgroundColor:"#ffa81e")
+    				attributeState("cooling", backgroundColor:"#269bd2")
   			}
   			tileAttribute("device.thermostatMode", key: "THERMOSTAT_MODE") {
-    			attributeState("off", label:'${name}')
-    			attributeState("heat", label:'${name}')
-    			attributeState("cool", label:'${name}')
-    			attributeState("auto", label:'${name}')
+    				attributeState("off", label:'${name}')
+    				attributeState("heat", label:'${name}')
+    				attributeState("cool", label:'${name}')
+    				attributeState("auto", label:'${name}')
   			}
   			tileAttribute("device.heatingSetpoint", key: "HEATING_SETPOINT") {
-    			attributeState("default", label:'${currentValue}')
+    				attributeState("default", label:'${currentValue}')
   			}
   			tileAttribute("device.coolingSetpoint", key: "COOLING_SETPOINT") {
-    			attributeState("default", label:'${currentValue}')
+    				attributeState("default", label:'${currentValue}')
   			}
-        }
-        standardTile("thermostatMode", "device.thermostatMode", inactiveLabel: true, width:2, height:2, decoration: "flat") {
+		}
+		standardTile("thermostatMode", "device.thermostatMode", inactiveLabel: true, width:2, height:2, decoration: "flat") {
 			state("auto", action:"thermostat.off", icon: "st.thermostat.auto")
 			state("off", action:"thermostat.cool", icon: "st.thermostat.heating-cooling-off")
 			state("cool", action:"thermostat.heat", icon: "st.thermostat.cool")
 			state("heat", action:"thermostat.auto", icon: "st.thermostat.heat")
 		}
-        standardTile("thermostatFanMode", "device.thermostatFanMode", inactiveLabel: true, width:2, height:2, decoration: "flat") {
+		standardTile("thermostatFanMode", "device.thermostatFanMode", inactiveLabel: true, width:2, height:2, decoration: "flat") {
 			state "auto", action:"thermostat.fanOn", icon: "st.thermostat.fan-auto"
 			state "on", action:"thermostat.fanCirculate", icon: "st.thermostat.fan-on"
 			state "circulate", action:"thermostat.fanAuto", icon: "st.thermostat.fan-circulate"
@@ -120,26 +123,26 @@ metadata {
 		standardTile("refresh", "device.thermostatMode", width:1, height:1, decoration: "flat") {
 			state "default", action:"polling.poll", icon:"st.secondary.refresh"
 		}
-        valueTile("firmwareVer", "device.firmwareVer", width: 2, height: 1, decoration: "flat", wordWrap: true) {
+		valueTile("firmwareVer", "device.firmwareVer", width: 2, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: 'Firmware:\nv${currentValue}'
 		}
-        valueTile("autoAway", "device.autoAway", width: 2, height: 1, decoration: "flat", wordWrap: true) {
+	        valueTile("autoAway", "device.autoAway", width: 2, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: '${currentValue}'
 		}
-        valueTile("airFilter", "device.airFilter", width: 2, height: 1, decoration: "flat", wordWrap: true) {
+	        valueTile("airFilter", "device.airFilter", width: 2, height: 1, decoration: "flat", wordWrap: true) {
 			state "default", label: '${currentValue}'
 		}
-        standardTile("leafValue", "device.leafValue", width: 1, height: 1) {
+		standardTile("leafValue", "device.leafValue", width: 1, height: 1) {
 			state("on", icon: "https://dl.dropboxusercontent.com/s/srdilt1iimtihfk/nest_leaf.png")
-            state("off", icon: "https://dl.dropboxusercontent.com/s/r8od1fqp7sffrf0/nest_leaf_dark.png")
+			state("off", icon: "https://dl.dropboxusercontent.com/s/r8od1fqp7sffrf0/nest_leaf_dark.png")
 		}
-        valueTile("rssiTile", "device.rssiTile", width: 1, height: 1, decoration: "flat") {
+		valueTile("rssiTile", "device.rssiTile", width: 1, height: 1, decoration: "flat") {
 			state "one", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/k1hwtntuy7w2nar/signal_wifi_statusbar1.png"
-            state "two", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/li57n9knv44s6lz/signal_wifi_statusbar2.png"
-            state "three", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/ceecz74b7jzgeoj/signal_wifi_statusbar3.png"
+			state "two", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/li57n9knv44s6lz/signal_wifi_statusbar2.png"
+			state "three", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/ceecz74b7jzgeoj/signal_wifi_statusbar3.png"
 			state "four", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/oa14yhjkelpbx7p/signal_wifi_statusbar4.png"
-            state "five", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/6kuf1c25niuhxsj/signal_wifi_statusbar5.png"
-            state "none", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/6oavdtrfxy1b706/signal_wifi_statusbar_null.png"
+			state "five", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/6kuf1c25niuhxsj/signal_wifi_statusbar5.png"
+			state "none", label: 'WiFi', icon: "https://dl.dropboxusercontent.com/s/6oavdtrfxy1b706/signal_wifi_statusbar_null.png"
 				
 		}
 		/*standardTile("temperatureUnit", "device.temperatureUnit", width:2, height:2, canChangeIcon: false, decoration: "flat") {
@@ -148,10 +151,20 @@ metadata {
 		}*/
         
 		main(["temperature"])
+
 		details(["temperature", "thermostatMode", "nestPresence", "thermostatFanMode", "autoAway", "airFilter", "firmwareVer", "refresh"])
-        //details(["temperature", "thermostatMode", "nestPresence", "thermostatFanMode", "temperatureUnit", "refresh"])
+
+		// really old  details(["temperature", "thermostatMode", "nestPresence", "thermostatFanMode", "temperatureUnit", "refresh"])
 	}
 }
+
+// update preferences
+def updated() {
+        log.debug "Updated"
+        // reset the authentication
+        data.auth = null
+}
+
 	
 // parse events into attributes
 def parse(String description) {
@@ -160,10 +173,10 @@ def parse(String description) {
 
 def setTemperature(value) {
 	def operMode = device.currentValue("thermostatMode")
-    def curTemp = device.currentValue("temperature").toInteger()
-    def newCTemp
-    def newHTemp 
-    switch (operMode) {
+	def curTemp = device.currentValue("temperature").toInteger()
+	def newCTemp
+	def newHTemp 
+	switch (operMode) {
     	case "heat":
         	(value < curTemp) ? (newHTemp = getHeatTemp().toInteger() - 1) : (newHTemp = getHeatTemp().toInteger() + 1)
         	setHeatingSetpoint(newHTemp.toInteger())
@@ -185,57 +198,66 @@ def setTemperature(value) {
 
 def getHeatTemp() { 
 	try { return device.latestValue("heatingSetpoint") } 
-    catch (e) { return 0 }
+	catch (e) { return 0 }
 }
+
 def getCoolTemp() { 
 	try { return device.latestValue("coolingSetpoint") } 
-    catch (e) { return 0 }
+	catch (e) { return 0 }
 }
+
 // handle commands
 def setHeatingSetpoint(temp) {
 	def latestThermostatMode = device.latestState('thermostatMode')
 	def temperatureUnit = device.latestValue('temperatureUnit')
-	switch (temperatureUnit) {
-		case "celsius":
-			if (temp) {
-				if (temp < 9) {
-					temp = 9
-				}
-				if (temp > 32) {
-					temp = 32
-				}
-				if (latestThermostatMode.stringValue == 'auto') {
-					api('temperature', ['target_change_pending': true, 'target_temperature_low': temp]) {
-						sendEvent(name: 'heatingSetpoint', value: heatingSetpoint, unit: temperatureUnit, state: "heat")
+
+        log.debug "data.structure.away " + data.structure.away + " data.shared.can_heat " + data.shared.can_heat
+
+        if ((data.structure.away == 'present') && data.shared.can_heat) {
+
+		switch (temperatureUnit) {
+			case "celsius":
+				if (temp) {
+					if (temp < 9) {
+						temp = 9
 					}
-				} else if (latestThermostatMode.stringValue == 'heat') {
-					api('temperature', ['target_change_pending': true, 'target_temperature': temp]) {
+					if (temp > 32) {
+						temp = 32
+					}
+					if (latestThermostatMode.stringValue == 'auto') {
+						api('temperature', ['target_change_pending': true, 'target_temperature_low': temp]) {
 							sendEvent(name: 'heatingSetpoint', value: heatingSetpoint, unit: temperatureUnit, state: "heat")
+						}
+					} else if (latestThermostatMode.stringValue == 'heat') {
+						api('temperature', ['target_change_pending': true, 'target_temperature': temp]) {
+								sendEvent(name: 'heatingSetpoint', value: heatingSetpoint, unit: temperatureUnit, state: "heat")
+						}
 					}
 				}
-			}
-			break;
-		default:
-			if (temp) {
-				if (temp < 51) {
-					temp = 51
-				}
-				if (temp > 89) {
-					temp = 89
-				}
-				if (latestThermostatMode.stringValue == 'auto') {
-					api('temperature', ['target_change_pending': true, 'target_temperature_low': fToC(temp)]) {
-						sendEvent(name: 'heatingSetpoint', value: heatingSetpoint, unit: temperatureUnit, state: "heat")
+				break;
+			default:
+				if (temp) {
+					if (temp < 51) {
+						temp = 51
 					}
-                    log.debug "Heat Temp Received: ${temp}"
-				} else if (latestThermostatMode.stringValue == 'heat') {
-					api('temperature', ['target_change_pending': true, 'target_temperature': fToC(temp)]) {
-						sendEvent(name: 'heatingSetpoint', value: heatingSetpoint, unit: temperatureUnit, state: "heat")
+					if (temp > 89) {
+						temp = 89
 					}
-                    log.debug "Heat Temp Received: ${temp}"
+					log.debug "Heat Temp Received: ${temp}"
+					if (latestThermostatMode.stringValue == 'auto') {
+						api('temperature', ['target_change_pending': true, 'target_temperature_low': fToC(temp)]) {
+							sendEvent(name: 'heatingSetpoint', value: heatingSetpoint, unit: temperatureUnit, state: "heat")
+						}
+					} else if (latestThermostatMode.stringValue == 'heat') {
+						api('temperature', ['target_change_pending': true, 'target_temperature': fToC(temp)]) {
+							sendEvent(name: 'heatingSetpoint', value: heatingSetpoint, unit: temperatureUnit, state: "heat")
+						}
+					}
 				}
-			}
-			break;
+				break;
+		}
+	} else {
+		log.debug "Skipping heat change"
 	}
 	poll()
 }
@@ -244,45 +266,52 @@ def setCoolingSetpoint(temp) {
 	def latestThermostatMode = device.latestState('thermostatMode')
 	def temperatureUnit = device.latestValue('temperatureUnit')
 
-	switch (temperatureUnit) {
-		case "celsius":
-			if (temp) {
-				if (temp < 9) {
-					temp = 9
-				}
-				if (temp > 32) {
-					temp = 32
-				}
-				if (latestThermostatMode.stringValue == 'auto') {
-					api('temperature', ['target_change_pending': true, 'target_temperature_high': temp]) {
-						sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
+        log.debug "data.structure.away " + data.structure.away + " data.shared.can_cool " + data.shared.can_cool
+
+        if ((data.structure.away == 'present') && data.shared.can_cool) {
+
+		switch (temperatureUnit) {
+			case "celsius":
+				if (temp) {
+					if (temp < 9) {
+						temp = 9
 					}
-				} else if (latestThermostatMode.stringValue == 'cool') {
-					api('temperature', ['target_change_pending': true, 'target_temperature': temp]) {
-						sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
+					if (temp > 32) {
+						temp = 32
 					}
-				}
-			}
-			break;
-		default:
-			if (temp) {
-				if (temp < 51) {
-					temp = 51
-				}
-				if (temp > 89) {
-					temp = 89
-				}
-				if (latestThermostatMode.stringValue == 'auto') {
-					api('temperature', ['target_change_pending': true, 'target_temperature_high': fToC(temp)]) {
-						sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
-					}
-				} else if (latestThermostatMode.stringValue == 'cool') {
-					api('temperature', ['target_change_pending': true, 'target_temperature': fToC(temp)]) {
-						sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
+					if (latestThermostatMode.stringValue == 'auto') {
+						api('temperature', ['target_change_pending': true, 'target_temperature_high': temp]) {
+							sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
+						}
+					} else if (latestThermostatMode.stringValue == 'cool') {
+						api('temperature', ['target_change_pending': true, 'target_temperature': temp]) {
+							sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
+						}
 					}
 				}
-			}
-			break;
+				break;
+			default:
+				if (temp) {
+					if (temp < 51) {
+						temp = 51
+					}
+					if (temp > 89) {
+						temp = 89
+					}
+					if (latestThermostatMode.stringValue == 'auto') {
+						api('temperature', ['target_change_pending': true, 'target_temperature_high': fToC(temp)]) {
+							sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
+						}
+					} else if (latestThermostatMode.stringValue == 'cool') {
+						api('temperature', ['target_change_pending': true, 'target_temperature': fToC(temp)]) {
+							sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
+						}
+					}
+				}
+				break;
+		}
+	} else {
+		log.debug "Skipping cool change"
 	}
 	poll()
 }
@@ -306,19 +335,39 @@ def off() {
 }
 
 def heat() {
-	setThermostatMode('heat')
+        if (data.shared.can_heat) {
+                setThermostatMode('heat')
+        } else {
+                log.debug "heating not supported"
+                poll()
+        }
 }
 
 def emergencyHeat() {
-	setThermostatMode('heat')
+        if (data.shared.can_heat) {
+                setThermostatMode('heat')
+        } else {
+                log.debug "heating not supported"
+                poll()
+        }
 }
 
 def cool() {
-	setThermostatMode('cool')
+        if (data.shared.can_cool) {
+                setThermostatMode('cool')
+        } else {
+                log.debug "cooling not supported"
+                poll()
+        }
 }
 
 def auto() {
-	setThermostatMode('range')
+        if ((data.shared.can_cool) && (data.shared.can_heat)) {
+                setThermostatMode('range')
+        } else {
+                log.debug "heating AND cooling not supported"
+                poll()
+        }
 }
 
 def setThermostatMode(mode) {
@@ -332,7 +381,12 @@ def setThermostatMode(mode) {
 }
 
 def fanOn() {
-	setThermostatFanMode('on')
+        if (data.device.has_fan) {
+                setThermostatFanMode('on')
+        } else {
+                log.debug "no fan control"
+                poll()
+        }
 }
 
 def fanAuto() {
@@ -340,7 +394,12 @@ def fanAuto() {
 }
 
 def fanCirculate() {
-	setThermostatFanMode('circulate')
+        if (data.device.has_fan) {
+                setThermostatFanMode('circulate')
+        } else {
+                log.debug "no fan control"
+                poll()
+        }
 }
 
 def setThermostatFanMode(mode) {
@@ -359,11 +418,13 @@ def setThermostatFanMode(mode) {
 def away() {
 	setNestPresence('away')
 	sendEvent(name: 'nestPresence', value: 'not present')
+	sendEvent(name: 'presence', value: 'not present')
 }
 
 def present() {
 	setNestPresence('present')
 	sendEvent(name: 'nestPresence', value: 'present')
+	sendEvent(name: 'presence', value: 'present')
 }
 
 def setNestPresence(status) {
@@ -379,87 +440,90 @@ def setDeviceLabel(value) {
 
 def setFirmwareVer(value) {
 	def firmVer = data?.device?.current_version ?: "unknown"
-    sendEvent(name: 'firmwareVer', value: firmVer)	
+	sendEvent(name: 'firmwareVer', value: firmVer)	
 }
 
 def setFilterStatus(hasFilter,filterReminder,filterStatus) {
 	def value
-    def filterVal = (filterStatus) ? "Ok" : "Replace"
-    if (hasFilter) { value = "Installed (${filterVal})" }
-    else { value = "Not Installed" }
-    //log.info "Air Filter: ${value}"
-    sendEvent(name: 'airFilter', value: "Filter:\n" + value)
+	def filterVal = (filterStatus) ? "Ok" : "Replace"
+	if (hasFilter) { value = "Installed (${filterVal})" }
+	else { value = "Not Installed" }
+	//log.info "Air Filter: ${value}"
+	sendEvent(name: 'airFilter', value: "Filter:\n" + value)
 }
 
 def setAutoAwayStatus(enabled, learning, status) {
 	def value 
-    def aaActive = (status == 1) ? "On" : "Off"
-    if(enabled) { value = "${aaActive} (${learning})" }
-    else { value = "Disabled" }
-    //log.info "Auto-Away: ${value}"
-    sendEvent(name: 'autoAway', value: "Auto-Away:\n" + value)
+	def aaActive = (status == 1) ? "On" : "Off"
+	if(enabled) { value = "${aaActive} (${learning})" }
+	else { value = "Disabled" }
+	//log.info "Auto-Away: ${value}"
+	sendEvent(name: 'autoAway', value: "Auto-Away:\n" + value)
 }
 
 def setLeafStatus(leaf) {
 	def val = leaf.toBoolean() ? "on" : "off"
-    //log.info "Nest Leaf: ${val}" 
+	//log.info "Nest Leaf: ${val}" 
 	sendEvent(name: 'leafValue', value: '${val}' )
 }
 
 def setTempUnit(unit) {
 	def cur = device.latestValue("temperatureUnit")
-    def value = (unit = "F") ? "fahrenheit" : "celsius"	
-    if (!cur || (value != cur)) {
-    	log.info "Temperature Unit: ${value}"
-    	sendEvent(name: "temperatureUnit", value: value)
-    }
+	def value = (unit = "F") ? "fahrenheit" : "celsius"	
+	if (!cur || (value != cur)) {
+		log.info "Temperature Unit: ${value}"
+		sendEvent(name: "temperatureUnit", value: value)
+	}
 }
 
 def setRssiLevel(value) {
 	def tmp = value.toInteger()
-    def val = getSigLevelVal(tmp)
-    //log.info "RSSI Level: ${value}(${tmp}), ${val}"
-    sendEvent(name: 'rssiTile', value: '${val}')
-    sendEvent(name: 'rssi', value: value)
+	def val = getSigLevelVal(tmp)
+	//log.info "RSSI Level: ${value}(${tmp}), ${val}"
+	sendEvent(name: 'rssiTile', value: '${val}')
+	sendEvent(name: 'rssi', value: value)
 }
 
 def getSigLevelVal(value) {
 	def valA = ["one", "two", "three", "four", "five", "none"]
 	if (value > 1 && value < 50) { return valA[0] }
-    if (value >= 50 && value < 60) { return valA[1] }
+	if (value >= 50 && value < 60) { return valA[1] }
 	if (value >= 60 && value < 70) { return valA[2] }
-    if (value >= 70 && value < 80) { return valA[3] }
-    if (value >= 80) { return valA[4] }
-    if ((value = 0) || (!value)) { return valA[5] }
+	if (value >= 70 && value < 80) { return valA[3] }
+	if (value >= 80) { return valA[4] }
+	if ((value = 0) || (!value)) { return valA[5] }
 }
 
-def setDehumidifierStatus( ) {
-
+def setDehumidifierStatus() {
 }
 
 def poll() {
 	log.debug "Executing 'poll'"
 	api('status', []) {
+		//log.debug "performing actions after api status"
 		data.device = it.data.device.getAt(settings.serial)
 		data.shared = it.data.shared.getAt(settings.serial)
-       	def items = data.device
-        for (item in items) { 
-        	//log.debug "Device Data: ${item.key}: ${item.value}" 
-        }
 		data.structureId = it.data.link.getAt(settings.serial).structure.tokenize('.')[1]
 		data.structure = it.data.structure.getAt(data.structureId)
+
+		//log.debug "data.shared: " + data.shared
+		def items = data.device
+		for (item in items) {
+			//log.debug "Device Data: ${item.key}: ${item.value}"
+		}
+		//log.debug "data.structure: " + data.structure
+
 		data.device.fan_mode = data.device.fan_mode == 'duty-cycle'? 'circulate' : data.device.fan_mode
 		data.structure.away = data.structure.away ? 'away' : 'present'
 		
-		//log.debug(data.shared)
-        setTempUnit(data?.temperature_scale?.toString())
-        setFirmwareVer(data?.device?.current_version)
-        setFilterStatus(data?.device?.has_air_filter.toBoolean(), data?.device?.filter_reminder_enabled, null)
-        setLeafStatus(data?.device?.leaf)
-        setRssiLevel(data?.device?.rssi)
-        setAutoAwayStatus(data?.device?.auto_away_enable, data?.shared?.auto_away_learning, data?.shared?.auto_away)
-        //setDehumidifierStatus(data?.device?.dehumidifier_type, data?.device?.dehumidifier_state
-        def humidity = data?.device?.current_humidity
+		setTempUnit(data?.temperature_scale?.toString())
+		setFirmwareVer(data?.device?.current_version)
+		setFilterStatus(data?.device?.has_air_filter.toBoolean(), data?.device?.filter_reminder_enabled, null)
+		setLeafStatus(data?.device?.leaf)
+		setRssiLevel(data?.device?.rssi)
+		setAutoAwayStatus(data?.device?.auto_away_enable, data?.shared?.auto_away_learning, data?.shared?.auto_away)
+		//setDehumidifierStatus(data?.device?.dehumidifier_type, data?.device?.dehumidifier_state
+		def humidity = data?.device?.current_humidity
 		def temperatureType = data?.shared?.target_temperature_type
 		def fanMode = data?.device?.fan_mode
 		
@@ -487,7 +551,14 @@ def poll() {
 					coolingSetpoint = Math.round(data.shared.target_temperature_high)
 					heatingSetpoint = Math.round(data.shared.target_temperature_low)
 				}
-
+				if (data.structure.away == 'away') {
+					if (data.device.away_temperature_high_enabled) {
+						coolingSetpoint = Math.round(data.device.away_temperature_high)
+					}
+					if (data.device.away_temperature_low_enabled) {
+						heatingSetpoint = Math.round(data.device.away_temperature_low)
+					}
+				}
 				sendEvent(name: 'temperature', value: temperature, unit: temperatureUnit, state: temperatureType)
 				sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
 				sendEvent(name: 'heatingSetpoint', value: heatingSetpoint, unit: temperatureUnit, state: "heat")
@@ -504,24 +575,31 @@ def poll() {
 					coolingSetpoint = Math.round(cToF(data.shared.target_temperature_high))
 					heatingSetpoint = Math.round(cToF(data.shared.target_temperature_low))
 				}
-
+				if (data.structure.away == 'away') {
+					if (data.device.away_temperature_high_enabled) {
+						coolingSetpoint = Math.round(cToF(data.device.away_temperature_high))
+						//log.debug "we are away in poll coolingSetpoint " + coolingSetpoint
+					}
+					if (data.device.away_temperature_low_enabled) {
+						heatingSetpoint = Math.round(cToF(data.device.away_temperature_low))
+						//log.debug "we are away in poll heatingSetpoint " + heatingSetpoint
+					}
+					//log.debug "we are away in poll ending"
+				}
 				sendEvent(name: 'temperature', value: temperature, unit: temperatureUnit, state: temperatureType)
 				sendEvent(name: 'coolingSetpoint', value: coolingSetpoint, unit: temperatureUnit, state: "cool")
 				sendEvent(name: 'heatingSetpoint', value: heatingSetpoint, unit: temperatureUnit, state: "heat")
+
 				break;
 			}
 
-		switch (device.latestValue('nestPresence')) {
-			case "present":
-				if (data.structure.away == 'away') {
-					sendEvent(name: 'nestPresence', value: 'not present')
-				}
-				break;
-			case "not present":
-				if (data.structure.away == 'present') {
-					sendEvent(name: 'nestPresence', value: 'present')
-				}
-				break;
+		if (data.structure.away == 'away') {
+			sendEvent(name: 'nestPresence', value: 'not present')
+			sendEvent(name: 'presence', value: 'not present')
+		}
+		if (data.structure.away == 'present') {
+			sendEvent(name: 'nestPresence', value: 'present')
+			sendEvent(name: 'presence', value: 'present')
 		}
 
 		if (data.shared.hvac_ac_state) {
@@ -540,6 +618,9 @@ def api(method, args = [], success = {}) {
 	if(!isLoggedIn()) {
 		log.debug "Need to login"
 		login(method, args, success)
+		if(!isLoggedIn()) {
+			log.debug "Still not logged in"
+		}
 		return
 	}
 
@@ -606,7 +687,11 @@ def login(method = null, args = [], success = {}) {
 	httpPost(params) {response ->
 		data.auth = response.data
 		data.auth.expires_in = Date.parse('EEE, dd-MMM-yyyy HH:mm:ss z', response.data.expires_in).getTime()
-		log.debug data.auth
+		//log.debug data.auth
+		def items = data.auth
+		for (item in items) {
+			//log.debug "Auth Data: ${item.key}: ${item.value}"
+		}
 
 		api(method, args, success)
 	}
