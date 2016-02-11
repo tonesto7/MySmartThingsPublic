@@ -13,8 +13,8 @@
 *  for the specific language governing permissions and limitations under the License.
 *
 *  ---------------------------
-*	V2.4.4 (January 2nd, 2016)
-*	- Fixed code for todayUsage. Thanks @Xtropy
+*	V2.4.4 (February 9th, 2016)
+*	- Added actuator capability to allow use with Rule Machine Expert Features 
 *	V2.4.3 (December 18th, 2015)
 *	- Had to change MultiAttribute tile type from Thermostat to Generic to 
 *	- fix issue with latest Android Update (2.0.7)
@@ -33,7 +33,7 @@ import groovy.time.TimeCategory
 import groovy.time.TimeDuration
 
 def devTypeVer() {"2.4.4"}
-def versionDate() {"1-2-2016"}
+def versionDate() {"2-9-2016"}
 	
 metadata {
 	definition (name: "Efergy Engage Elite 2.0", namespace: "tonesto7", author: "Anthony S.") {
@@ -41,7 +41,10 @@ metadata {
         capability "Power Meter"
         capability "Polling"
         capability "Refresh"
+        capability "Actuator"
+        
         attribute "iconUrl", "string"
+        
         command "poll"
         command "refresh"
         command "updateStateData", ["string", "string", "string"]
@@ -116,6 +119,12 @@ metadata {
 }
 
 preferences {
+	section {
+			image(name: 'educationalcontent', multiple: true, images: [
+				"http://cdn.device-gse.smartthings.com/Arrival/Arrival1.jpg",
+				"http://cdn.device-gse.smartthings.com/Arrival/Arrival2.jpg"
+				])
+		}
 }
 
 // parse events into attributes
@@ -164,7 +173,7 @@ def updateUsageData(todayUsage, todayCost, monthUsage, monthCost, monthEst, mont
     logWriter("monthEst: " + state.currencySym+ monthEst)
     logWriter("monthBudget: " + state.currencySym + monthBudget)
     
-    sendEvent(name: "todayUsage", value: "${state.currencySym}${todayCost} (${todayUsage} kWH)", display: false, displayed: false)
+    sendEvent(name: "todayUsage", value: "${state.currencySym}${monthCost} (${todayUsage} kWH)", display: false, displayed: false)
     sendEvent(name: "monthUsage", value: "${state.monthName}\'s Usage:\n${state.currencySym}${monthCost} (${monthUsage} kWh)", display: false, displayed: false)
     sendEvent(name: "monthEst",   value: "${state.monthName}\'s Bill (Est.):\n${state.currencySym}${monthEst}", display: false, displayed: false)
     
