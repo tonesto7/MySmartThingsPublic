@@ -20,13 +20,13 @@ definition(
 	iconX2Url: "https://dl.dropboxusercontent.com/s/ysqycalevj2rvtp/efergy_256.png",
 	iconX3Url: "https://dl.dropboxusercontent.com/s/56740lxra2qkqix/efergy_512.png",
     singleInstance: true)
-
-//Change This to rename the Default App Name
+    
+    
 def appName() { "Efergy 2.0 (Connect)" }
 def appAuthor() { "Anthony S." }
 def appNamespace() { "tonesto7" }
-def appVersion() { "2.7.1" }
-def appVerDate() { "1-8-2016" }
+def appVersion() { "2.7.2" }
+def appVerDate() { "2-18-2016" }
 
 preferences {
 	page(name: "startPage")
@@ -77,7 +77,7 @@ def mainPage() {
         if (state.efergyAuthToken) {
             section("Efergy Hub:") { 
         		href "hubInfoPage", title:"View Hub Info", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/amhupeknid6osmu/St_hub.png"
-                href "readingInfoPage", title:"View Reading Data", description: "Tap to view more...", image: "https://dl.dropboxusercontent.com/s/3wb351466vn4w99/power_meter.png"
+                href "readingInfoPage", title:"View Reading Data", description: "Last Reading: \n${state.readingUpdated}\n\nTap to view more...", image: "https://dl.dropboxusercontent.com/s/3wb351466vn4w99/power_meter.png"
         	}
 			
             section("Preferences:") {
@@ -86,7 +86,7 @@ def mainPage() {
 			
             section(" ", mobileOnly: true) {
             	//App Details and Licensing Page
-            	href "infoPage", title:"App Info and Licensing", description: "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()} (${textModified()})\nTimeZone: ${location.timeZone.ID}\nCurrency: ${getCurrency()}\n\nTap to view more...", 
+            	href "infoPage", title:"App Info and Licensing", description: "Name: ${textAppName()}\nParent App: ${parent.appName()}\nCreated by: Anthony S.\n${textVersion()} (${textModified()})\nTimeZone: ${location.timeZone.ID}\nCurrency: ${getCurrency()}\n\nTap to view more...", 
                 image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
             }
         }
@@ -154,7 +154,7 @@ def prefsPage () {
 }
 
 def readingInfoPage () {
-	if (state.hubName == null) { refresh() }
+	if (!state.hubName) { refresh() }
 	return dynamicPage(name: "readingInfoPage", install: false) {
  		section ("Efergy Reading Information") {
     		paragraph "Current Power Reading: " + state.powerReading
@@ -168,8 +168,8 @@ def readingInfoPage () {
 }
 
 def hubInfoPage () {
-	if (state.hubName == null) { refresh() }
-	dynamicPage(name: "hubInfoPage", install: false) {
+	if (!state.hubName) { refresh() }
+	return dynamicPage(name: "hubInfoPage", install: false) {
  		section ("Efergy Hub Information") {
     		paragraph "Hub Name: " + state.hubName
         	paragraph "Hub ID: " + state.hubId
@@ -207,6 +207,7 @@ def infoPage () {
 /* Initialization */
 def installed() { 
 	state.appInstalled = true
+    parent.efergyAppInst(true)
 	sendNotificationEvent("${textAppName()} - ${appVersion()} (${appVerDate()}) installed...")
 	log.info "${textAppName()} - ${appVersion()} (${appVerDate()}) installed..."
     initialize() 
@@ -221,6 +222,7 @@ def updated() {
 }
 
 def uninstalled() {
+	parent.efergyAppInst(false)
 	unschedule()
 	removeChildDevices(getChildDevices())
 }
@@ -288,30 +290,37 @@ def updateDeviceData() {
 def refresh() {
 	GetLastRefrshSec()
 	if (state.efergyAuthToken) {
-		if (state?.timeSinceRfsh > 360 || !state?.timeSinceRfsh) { checkSchedule() }
-    	logWriter("")	
-		log.info "Refreshing Efergy Energy data from engage.efergy.com"
+		if (state?.timeSinceRfsh > 30) {
+        	logWriter("")	
+			log.info "Refreshing Efergy Energy data from engage.efergy.com"
     
-    	getDayMonth()
-    	getReadingData()
- 		getUsageData()
-    	getHubData()
-        getTariffData()
+    		getDayMonth()
+    		getReadingData()
+ 			getUsageData()
+    		getHubData()
+        	getTariffData()
     
-    	//If any people have been added for notification then it will check to see if it should notify
-    	if (recipients) { checkForNotify() }
+    		//If any people have been added for notification then it will check to see if it should notify
+    		if (recipients) { checkForNotify() }
    
-    	updateDeviceData()
-    	logWriter("")
+    		updateDeviceData()
+    		logWriter("")
+            runIn(30, "refresh")
+        }
+        else if (state?.timeSinceRfsh > 360 || !state?.timeSinceRfsh) { checkSchedule() }
     }
 }
 
 //Create Refresh schedule to refresh device data (Triggers roughly every 30 seconds)
 private addSchedule() {
-    schedule("1/1 * * * * ?", "refresh") //Runs every 30 seconds to Refresh Data
-    schedule("0 0/1 * 1/1 * ? *", "GetLastRefrshSec") //Runs every 1 minute to make sure that data is accurate
+    //schedule("1/1 * * * * ?", "refresh") //Runs every 30 seconds to Refresh Data
+    //schedule("0 0/1 * 1/1 * ? *", "refresh") //Runs every 1 minute to make sure that data is accurate
+    runIn(30, "refresh")
+    //runIn(60, "refresh")
+    runIn(130, "GetLastRefrshSec")
+    //schedule("0 0/1 * 1/1 * ? *", "GetLastRefrshSec") //Runs every 1 minute to make sure that data is accurate
     runEvery5Minutes("checkSchedule")
-    runEvery30Minutes("checkSchedule")
+    //runEvery30Minutes("checkSchedule")
 }
 
 def checkSchedule() {
@@ -365,7 +374,7 @@ def getDayMonth() {
     def month = new SimpleDateFormat("MMMM").format(now)
     def day = new SimpleDateFormat("EEEE").format(now)
    
-    if (month != null && day != null) {
+    if (month && day) {
     	state.monthName = month
         state.dayOfWeek = day
     } 
@@ -452,6 +461,7 @@ private def sendNotify(msg) {
 def GetLastRefrshSec() {
 	state.timeSinceRfsh = GetTimeDiffSeconds(state.hubTsHuman)
     logWriter("TimeSinceRefresh: ${state.timeSinceRfsh} seconds")
+    runIn(130, "GetLastRefrshSec")
 }
 
 //Returns time difference is seconds 
@@ -553,6 +563,7 @@ private def getReadingData() {
     	def today = new Date()
     	def tf = new SimpleDateFormat("MMM d,yyyy - h:mm:ss a")
     		tf.setTimeZone(location?.timeZone)
+        def tf2 = new SimpleDateFormat("MMM d,yyyy - h:mm:ss a")
     	def cidVal = "" 
 		def cidData = [{}]
     	def cidUnit = ""
@@ -594,7 +605,10 @@ private def getReadingData() {
         	state.cidUnit = cidUnit
             
         	//Formats epoch time to Human DateTime Format
-        	if (longTimeVal) {readingUpdated = "${tf.format(longTimeVal)}" }
+        	if (longTimeVal) { 
+            	readingUpdated = "${tf.format(longTimeVal)}"
+                log.debug "Timezone Formatted Time: ${readingUpdated} | Raw API Formatted Time: ${tf2.format(longTimeVal)}"
+            }
 
 			//Save last Cid reading value to device state
         	if (cidReading) {
@@ -721,31 +735,36 @@ private def textLicense() 	{ def text =
 def appDesc() { "This app will connect to the Efergy Servers and generate a token as well as create the energy device automatically for you.  After that it will manage and update the device info about every 30 seconds" }
 //Adds version changes to info page
 def appVerInfo() {	
+    "v2.7.2 (Feb 18th, 2016)\n" +
+    "Minor code optimizations\n"+
+    "Changed scheduler to use runIn (works well)\n"+
+    "Add in debug log entry to show people with timezone issue what timestamp they are receiving from Efergy API\n\n" +
+    
 	"v2.7.1 (Jan 8th, 2016)\n" +
  	"Added in logic to stop push notifications everytime you enter app preferences\n"+
     "Fixed debug logging require you to go back into setting a second time to actual update the changes\n"+
-    "Minor code cleanups\n"+
- 	"\n"+
+    "Minor code cleanups\n\n"+
+
 	"v2.7.0 (Dec 11th, 2015)\n" +
-    "Reworked alot of the code that sends the data to the device...\n" +  
- 	"\n"+
+    "Reworked alot of the code that sends the data to the device...\n\n" +  
+ 	
 	"v2.6.1 (Dec 8th, 2015)\n" +
-    "Fixed Tariff data to change currency symbol based on selected currency\n" +  
- 	"\n"+
+    "Fixed Tariff data to change currency symbol based on selected currency\n\n" +  
+
 	"v2.6.0 (Nov 11th, 2015)\n" +
  	"Optimized Scheduling and Added AppTouch Button to quickly refresh device from SmartApp List"+
-    "Fixed Random Errors received on reading data\n" +  
- 	"\n"+
+    "Fixed Random Errors received on reading data\n\n" +  
+ 	
 	"v2.5.1 (Nov 2nd, 2015)\n" +
- 	"Fixed Duplicate scheduling issue\n" +  
- 	"\n"+
+ 	"Fixed Duplicate scheduling issue\n\n" +  
+ 	
 	"v2.5.0 (Oct 26th, 2015)\n" +
  	"Restructured the main page layout of the smart app and icons\n" +  
- 	"Added Currency Units (If TimeZone is America the Unit is automatically '\$'... If your not in America you can change it in preferences)\n" + 
- 	"\n"+
+ 	"Added Currency Units (If TimeZone is America the Unit is automatically '\$'... If your not in America you can change it in preferences)\n\n" + 
+ 	
     "v2.4.0 (Oct 19th, 2015)\n" +
- 	"Updated the code to handle bad authentication events\n" +
-    "\n" +
+ 	"Updated the code to handle bad authentication events\n\n" +
+    
  	"v2.3.0 (Oct 1st, 2015)\n" +
 	"Added the new single instance only platform feature. to prevent multiple installs of this service manager\n" +
     "--------------------------------------------------------------"
