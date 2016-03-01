@@ -43,8 +43,6 @@ metadata {
         capability "Refresh"
         capability "Actuator"
         
-        attribute "iconUrl", "string"
-        
         command "poll"
         command "refresh"
         command "updateStateData", ["string", "string", "string"]
