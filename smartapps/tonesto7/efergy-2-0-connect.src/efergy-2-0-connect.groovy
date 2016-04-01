@@ -25,8 +25,8 @@ definition(
 def appName() { "Efergy 2.0 (Connect)" }
 def appAuthor() { "Anthony S." }
 def appNamespace() { "tonesto7" }
-def appVersion() { "2.7.2" }
-def appVerDate() { "2-18-2016" }
+def appVersion() { "2.7.3" }
+def appVerDate() { "4-1-2016" }
 
 preferences {
 	page(name: "startPage")
@@ -86,7 +86,7 @@ def mainPage() {
 			
             section(" ", mobileOnly: true) {
             	//App Details and Licensing Page
-            	href "infoPage", title:"App Info and Licensing", description: "Name: ${textAppName()}\nParent App: ${parent.appName()}\nCreated by: Anthony S.\n${textVersion()} (${textModified()})\nTimeZone: ${location.timeZone.ID}\nCurrency: ${getCurrency()}\n\nTap to view more...", 
+            	href "infoPage", title:"App Info and Licensing", description: "Name: ${textAppName()}\nCreated by: Anthony S.\n${textVersion()} (${textModified()})\nTimeZone: ${location.timeZone.ID}\nCurrency: ${getCurrency()}\n\nTap to view more...", 
                 image: "https://dl.dropboxusercontent.com/s/daakzncm7zdzc4w/efergy_128.png"
             }
         }
@@ -207,7 +207,6 @@ def infoPage () {
 /* Initialization */
 def installed() { 
 	state.appInstalled = true
-    parent.efergyAppInst(true)
 	sendNotificationEvent("${textAppName()} - ${appVersion()} (${appVerDate()}) installed...")
 	log.info "${textAppName()} - ${appVersion()} (${appVerDate()}) installed..."
     initialize() 
@@ -222,7 +221,6 @@ def updated() {
 }
 
 def uninstalled() {
-	parent.efergyAppInst(false)
 	unschedule()
 	removeChildDevices(getChildDevices())
 }
@@ -305,7 +303,7 @@ def refresh() {
    
     		updateDeviceData()
     		logWriter("")
-            runIn(30, "refresh")
+            //runIn(30, "refresh")
         }
         else if (state?.timeSinceRfsh > 360 || !state?.timeSinceRfsh) { checkSchedule() }
     }
@@ -313,14 +311,12 @@ def refresh() {
 
 //Create Refresh schedule to refresh device data (Triggers roughly every 30 seconds)
 private addSchedule() {
-    //schedule("1/1 * * * * ?", "refresh") //Runs every 30 seconds to Refresh Data
-    //schedule("0 0/1 * 1/1 * ? *", "refresh") //Runs every 1 minute to make sure that data is accurate
-    runIn(30, "refresh")
+    schedule("0 0/1 * * * ? *", "refresh") //Runs every 1 minute to make sure that data is accurate
+    //runIn(30, "refresh")
     //runIn(60, "refresh")
     runIn(130, "GetLastRefrshSec")
-    //schedule("0 0/1 * 1/1 * ? *", "GetLastRefrshSec") //Runs every 1 minute to make sure that data is accurate
+    //schedule(""0 0/1 * * * ?", "GetLastRefrshSec") //Runs every 1 minute to make sure that data is accurate
     runEvery5Minutes("checkSchedule")
-    //runEvery30Minutes("checkSchedule")
 }
 
 def checkSchedule() {
@@ -607,7 +603,7 @@ private def getReadingData() {
         	//Formats epoch time to Human DateTime Format
         	if (longTimeVal) { 
             	readingUpdated = "${tf.format(longTimeVal)}"
-                log.debug "Timezone Formatted Time: ${readingUpdated} | Raw API Formatted Time: ${tf2.format(longTimeVal)}"
+                //log.debug "Timezone Formatted Time: ${readingUpdated} | Raw API Formatted Time: ${tf2.format(longTimeVal)}"
             }
 
 			//Save last Cid reading value to device state
