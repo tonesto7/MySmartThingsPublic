@@ -56,7 +56,7 @@ metadata {
 	tiles (scale: 2) {
         multiAttributeTile(name:"power", type:"generic", width:6, height:4, wordWrap: true) {
     		tileAttribute("device.power", key: "PRIMARY_CONTROL") {
-      			attributeState "default", label: '${currentValue} W', icon: "https://dl.dropboxusercontent.com/s/vfxkm0hp6jsl56m/power_icon_bk.png", 
+      			attributeState "default", label: '${currentValue} W', icon: "st.samsung.da.RC_ic_power", 
                 foregroundColor: "#000000",
                 backgroundColors:[
 					[value: 1, color: "#00cc00"], //Light Green
@@ -171,7 +171,7 @@ def updateUsageData(todayUsage, todayCost, monthUsage, monthCost, monthEst, mont
     logWriter("monthEst: " + state.currencySym+ monthEst)
     logWriter("monthBudget: " + state.currencySym + monthBudget)
     
-    sendEvent(name: "todayUsage", value: "${state.currencySym}${monthCost} (${todayUsage} kWH)", display: false, displayed: false)
+    sendEvent(name: "todayUsage", value: "${state.currencySym}${todayCost} (${todayUsage} kWH)", display: false, displayed: false)
     sendEvent(name: "monthUsage", value: "${state.monthName}\'s Usage:\n${state.currencySym}${monthCost} (${monthUsage} kWh)", display: false, displayed: false)
     sendEvent(name: "monthEst",   value: "${state.monthName}\'s Bill (Est.):\n${state.currencySym}${monthEst}", display: false, displayed: false)
     
@@ -228,5 +228,5 @@ def updateHubData(String hubVersion, String hubStatus, String hubName) {
 private def logWriter(value) {
 	if (state.showLogging) {
         log.debug "${value}"
-    }	
 }
+    }	
